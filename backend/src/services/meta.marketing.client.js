@@ -50,14 +50,23 @@ function mapMarketingError(error) {
       /nome do formulário já existe|form.*already exists|duplicate/i.test(
         String(detail || '')
       );
-    return new AppError(detail || 'Conta de anúncio ou campanha inválida', {
-      statusCode: 400,
-      code: isFormName
-        ? 'META_LEAD_FORM_NAME_EXISTS'
-        : detail?.includes('FollowUpActionURL')
-          ? 'META_LEAD_FORM_INVALID'
-          : 'META_INVALID_AD_ACCOUNT',
-    });
+    const isWhatsappUnlinked =
+      /whatsapp phone number is not linked|não está vinculado|not linked to your account/i.test(
+        String(detail || graph?.message || '')
+      );
+    return new AppError(
+      detail || graph?.message || 'Conta de anúncio ou campanha inválida',
+      {
+        statusCode: 400,
+        code: isWhatsappUnlinked
+          ? 'META_WHATSAPP_NOT_LINKED'
+          : isFormName
+            ? 'META_LEAD_FORM_NAME_EXISTS'
+            : detail?.includes('FollowUpActionURL')
+              ? 'META_LEAD_FORM_INVALID'
+              : 'META_INVALID_AD_ACCOUNT',
+      }
+    );
   }
 
   return new AppError(detail || 'Erro na Marketing API', {
@@ -178,6 +187,14 @@ export const metaMarketingClient = {
       data: toFormBody({ status }),
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    });
+  },
+
+  async deleteCampaign(campaignId, accessToken) {
+    return request('DELETE', `/${campaignId}`, {
+      params: {
+        access_token: accessToken,
       },
     });
   },

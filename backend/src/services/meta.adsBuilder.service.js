@@ -792,142 +792,179 @@ export const metaAdsBuilderService = {
 
     logger.info('Ads Builder: Messages', { companyId, channels });
 
-    const metaCampaign = await metaMarketingClient.createCampaign(
-      adAccountId,
-      accessToken,
-      {
-        name: campaignName,
-        objective: META_OBJECTIVE_BY_PRODUCT[CampaignObjective.MESSAGES],
-        status: CampaignStatus.PAUSED,
-        special_ad_categories: [],
-        daily_budget: budgetCents,
-        is_adset_budget_sharing_enabled: false,
-      }
-    );
+    let metaCampaign = null;
+    let campaign = null;
 
-    if (!metaCampaign?.id) {
-      throw new AppError('Falha ao criar campanha na Meta', {
-        statusCode: 502,
-        code: 'META_MARKETING_ERROR',
-      });
-    }
-
-    const campaign = await campaignRepository.create({
-      companyId,
-      adAccountId,
-      campaignId: String(metaCampaign.id),
-      name: campaignName,
-      objective: CampaignObjective.MESSAGES,
-      status: CampaignStatus.PAUSED,
-      dailyBudget: Number(input.budget ?? input.dailyBudget),
-    });
-
-    const { targeting, cityHint } = buildTargeting(audience);
-    const bidAmountCents = resolveBidAmountCents(audience, budgetCents);
-    const baseAdSetName = String(
-      audience.name || `Conjunto ${campaignName}`
-    ).trim();
-
-    const adSets = [];
-    const creatives = [];
-    const ads = [];
-
-    for (const channel of channels) {
-      const promotedObject = { page_id: String(page.page_id) };
-      let destinationType = 'INSTAGRAM_DIRECT';
-      let ctaType = 'MESSAGE_PAGE';
-
-      if (channel === 'WHATSAPP') {
-        promotedObject.whatsapp_phone_number = String(
-          input.whatsappPhoneNumber
-        ).trim();
-        destinationType = 'WHATSAPP';
-        ctaType = 'WHATSAPP_MESSAGE';
-      }
-
-      const adSetName = `${baseAdSetName} · ${channel}`;
-
-      const metaAdSet = await metaMarketingClient.createAdSet(
+    try {
+      metaCampaign = await metaMarketingClient.createCampaign(
         adAccountId,
         accessToken,
         {
-          name: adSetName,
-          campaign_id: metaCampaign.id,
-          billing_event: 'IMPRESSIONS',
-          optimization_goal: 'CONVERSATIONS',
-          destination_type: destinationType,
-          bid_strategy: 'LOWEST_COST_WITH_BID_CAP',
-          bid_amount: bidAmountCents,
-          targeting,
-          promoted_object: promotedObject,
-          status: 'PAUSED',
+          name: campaignName,
+          objective: META_OBJECTIVE_BY_PRODUCT[CampaignObjective.MESSAGES],
+          status: CampaignStatus.PAUSED,
+          special_ad_categories: [],
+          daily_budget: budgetCents,
+          is_adset_budget_sharing_enabled: false,
         }
       );
 
-      if (!metaAdSet?.id) {
-        throw new AppError(
-          `Falha ao criar conjunto de anúncios (${channel}) na Meta`,
-          { statusCode: 502, code: 'META_MARKETING_ERROR' }
-        );
+      if (!metaCampaign?.id) {
+        throw new AppError('Falha ao criar campanha na Meta', {
+          statusCode: 502,
+          code: 'META_MARKETING_ERROR',
+        });
       }
 
-      const adSet = await adSetRepository.create({
-        companyId,
-        campaignId: campaign.id,
-        metaAdsetId: String(metaAdSet.id),
-        name: adSetName,
-        dailyBudget: null,
-        targeting: { ...targeting, cityHint, messageChannel: channel },
-        status: 'PAUSED',
-      });
-
-      const { creative, metaCreative } = await createCreativeAndPersist({
+      campaign = await campaignRepository.create({
         companyId,
         adAccountId,
-        accessToken,
-        pageId: page.page_id,
-        campaignName: `${campaignName} ${channel}`,
-        creativeInput,
-        ctaType: creativeInput.cta || creativeInput.ctaType || ctaType,
-        linkUrl: `https://www.facebook.com/${page.page_id}`,
-        ctaValue:
-          channel === 'WHATSAPP'
-            ? {
-                whatsapp_phone_number: String(input.whatsappPhoneNumber).trim(),
-              }
-            : undefined,
-        defaultTitle: 'Fale conosco',
-        defaultBody: 'Envie uma mensagem e tire suas dúvidas.',
+        campaignId: String(metaCampaign.id),
+        name: campaignName,
+        objective: CampaignObjective.MESSAGES,
+        status: CampaignStatus.PAUSED,
+        dailyBudget: Number(input.budget ?? input.dailyBudget),
       });
 
-      const ad = await createAdAndPersist({
-        companyId,
-        adAccountId,
-        accessToken,
-        adSetId: adSet.id,
-        metaAdSetId: metaAdSet.id,
-        creativeId: creative.id,
-        metaCreativeId: metaCreative.id,
-        campaignName: `${campaignName} ${channel}`,
-        creativeInput,
-      });
+      const { targeting, cityHint } = buildTargeting(audience);
+      const bidAmountCents = resolveBidAmountCents(audience, budgetCents);
+      const baseAdSetName = String(
+        audience.name || `Conjunto ${campaignName}`
+      ).trim();
 
-      adSets.push(toPublicAdSet(adSet));
-      creatives.push(toPublicAdCreative(creative));
-      ads.push(toPublicAd(ad));
+      const adSets = [];
+      const creatives = [];
+      const ads = [];
+
+      for (const channel of channels) {
+        const promotedObject = { page_id: String(page.page_id) };
+        let destinationType = 'INSTAGRAM_DIRECT';
+        let ctaType = 'MESSAGE_PAGE';
+
+        if (channel === 'WHATSAPP') {
+          promotedObject.whatsapp_phone_number = String(
+            input.whatsappPhoneNumber
+          ).trim();
+          destinationType = 'WHATSAPP';
+          ctaType = 'WHATSAPP_MESSAGE';
+        }
+
+        const adSetName = `${baseAdSetName} · ${channel}`;
+
+        const metaAdSet = await metaMarketingClient.createAdSet(
+          adAccountId,
+          accessToken,
+          {
+            name: adSetName,
+            campaign_id: metaCampaign.id,
+            billing_event: 'IMPRESSIONS',
+            optimization_goal: 'CONVERSATIONS',
+            destination_type: destinationType,
+            bid_strategy: 'LOWEST_COST_WITH_BID_CAP',
+            bid_amount: bidAmountCents,
+            targeting,
+            promoted_object: promotedObject,
+            status: 'PAUSED',
+          }
+        );
+
+        if (!metaAdSet?.id) {
+          throw new AppError(
+            `Falha ao criar conjunto de anúncios (${channel}) na Meta`,
+            { statusCode: 502, code: 'META_MARKETING_ERROR' }
+          );
+        }
+
+        const adSet = await adSetRepository.create({
+          companyId,
+          campaignId: campaign.id,
+          metaAdsetId: String(metaAdSet.id),
+          name: adSetName,
+          dailyBudget: null,
+          targeting: { ...targeting, cityHint, messageChannel: channel },
+          status: 'PAUSED',
+        });
+
+        const { creative, metaCreative } = await createCreativeAndPersist({
+          companyId,
+          adAccountId,
+          accessToken,
+          pageId: page.page_id,
+          campaignName: `${campaignName} ${channel}`,
+          creativeInput,
+          ctaType: creativeInput.cta || creativeInput.ctaType || ctaType,
+          linkUrl: `https://www.facebook.com/${page.page_id}`,
+          ctaValue:
+            channel === 'WHATSAPP'
+              ? {
+                  whatsapp_phone_number: String(
+                    input.whatsappPhoneNumber
+                  ).trim(),
+                }
+              : undefined,
+          defaultTitle: 'Fale conosco',
+          defaultBody: 'Envie uma mensagem e tire suas dúvidas.',
+        });
+
+        const ad = await createAdAndPersist({
+          companyId,
+          adAccountId,
+          accessToken,
+          adSetId: adSet.id,
+          metaAdSetId: metaAdSet.id,
+          creativeId: creative.id,
+          metaCreativeId: metaCreative.id,
+          campaignName: `${campaignName} ${channel}`,
+          creativeInput,
+        });
+
+        adSets.push(toPublicAdSet(adSet));
+        creatives.push(toPublicAdCreative(creative));
+        ads.push(toPublicAd(ad));
+      }
+
+      return {
+        campaign: toPublicCampaign(campaign),
+        form: null,
+        adSet: adSets[0] || null,
+        adSets,
+        creative: creatives[0] || null,
+        creatives,
+        ad: ads[0] || null,
+        ads,
+        channels,
+      };
+    } catch (error) {
+      // Evita campanhas órfãs (Meta + local) quando o ad set/WhatsApp falha depois
+      if (campaign?.id) {
+        try {
+          await campaignRepository.deleteCascade(companyId, campaign.id);
+        } catch (cleanupError) {
+          logger.error('Falha ao limpar campanha local após erro', {
+            companyId,
+            campaignId: campaign.id,
+            detail: cleanupError.message,
+          });
+        }
+      }
+
+      if (metaCampaign?.id) {
+        try {
+          await metaMarketingClient.deleteCampaign(
+            metaCampaign.id,
+            accessToken
+          );
+        } catch (cleanupError) {
+          logger.error('Falha ao limpar campanha Meta após erro', {
+            companyId,
+            metaCampaignId: metaCampaign.id,
+            detail: cleanupError.message,
+          });
+        }
+      }
+
+      throw error;
     }
-
-    return {
-      campaign: toPublicCampaign(campaign),
-      form: null,
-      adSet: adSets[0] || null,
-      adSets,
-      creative: creatives[0] || null,
-      creatives,
-      ad: ads[0] || null,
-      ads,
-      channels,
-    };
   },
 
   async createTrafficCampaign(companyId, input) {

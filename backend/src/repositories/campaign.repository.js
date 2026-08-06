@@ -48,6 +48,41 @@ export const campaignRepository = {
     return this.findById(companyId, id);
   },
 
+  async deleteCascade(companyId, id) {
+    const adSets = await db('ad_sets')
+      .where({ company_id: companyId, campaign_id: id })
+      .select('id');
+    const adSetIds = adSets.map((row) => row.id);
+
+    if (adSetIds.length > 0) {
+      const ads = await db('ads')
+        .where({ company_id: companyId })
+        .whereIn('ad_set_id', adSetIds)
+        .select('id', 'creative_id');
+      const creativeIds = [
+        ...new Set(ads.map((row) => row.creative_id).filter(Boolean)),
+      ];
+
+      await db('ads')
+        .where({ company_id: companyId })
+        .whereIn('ad_set_id', adSetIds)
+        .del();
+
+      if (creativeIds.length > 0) {
+        await db('ad_creatives')
+          .where({ company_id: companyId })
+          .whereIn('id', creativeIds)
+          .del();
+      }
+
+      await db('ad_sets')
+        .where({ company_id: companyId, campaign_id: id })
+        .del();
+    }
+
+    await db('campaigns').where({ company_id: companyId, id }).del();
+  },
+
   async upsert({
     companyId,
     adAccountId,
