@@ -46,9 +46,25 @@ export function createApp() {
     const distPath = path.resolve(__dirname, '../../frontend/dist');
     app.use(express.static(distPath));
     app.get('*', (req, res, next) => {
-      if (req.path.startsWith('/api') || req.path.startsWith('/webhooks') || req.path.startsWith('/meta')) {
-        return next();
-      }
+      // APIs que não devem cair no SPA
+      const isApi =
+        req.path.startsWith('/webhooks') ||
+        req.path.startsWith('/auth') ||
+        req.path.startsWith('/leads') ||
+        req.path.startsWith('/campaigns') ||
+        req.path.startsWith('/conversations') ||
+        req.path.startsWith('/automations') ||
+        req.path.startsWith('/forms') ||
+        req.path.startsWith('/lead-forms') ||
+        req.path.startsWith('/meta/connect') ||
+        req.path.startsWith('/meta/callback') ||
+        req.path.startsWith('/meta/status') ||
+        req.path.startsWith('/meta/disconnect') ||
+        req.path.startsWith('/meta/assets') ||
+        req.path === '/health';
+
+      if (isApi) return next();
+
       res.sendFile(path.join(distPath, 'index.html'), (err) => {
         if (err) next();
       });
