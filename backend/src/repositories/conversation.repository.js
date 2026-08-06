@@ -55,6 +55,24 @@ export const conversationRepository = {
       .first();
   },
 
+  async findByExternalUserId(companyId, channel, externalUserId) {
+    if (!externalUserId) return null;
+    return db('conversations as c')
+      .leftJoin('leads as l', 'l.id', 'c.lead_id')
+      .select(
+        'c.*',
+        'l.name as lead_name',
+        'l.phone as lead_phone',
+        'l.email as lead_email'
+      )
+      .where({
+        'c.company_id': companyId,
+        'c.channel': channel,
+        'c.external_user_id': String(externalUserId),
+      })
+      .first();
+  },
+
   async upsertByLeadChannel({
     companyId,
     leadId,

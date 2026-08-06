@@ -13,5 +13,6 @@ export function toPublicMetaWhatsappAccount(row) {
     id: row.id,
     businessAccountId: row.business_account_id,
     phoneNumber: row.phone_number,
+    phoneNumberId: row.phone_number_id || null,
   };
 }

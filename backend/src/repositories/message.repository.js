@@ -34,4 +34,14 @@ export const messageRepository = {
       .where({ conversation_id: conversationId, company_id: companyId })
       .orderBy('created_at', 'asc');
   },
+
+  async findByExternalMessageId(companyId, externalMessageId) {
+    if (!externalMessageId) return null;
+    return db('messages')
+      .where({
+        company_id: companyId,
+        external_message_id: externalMessageId,
+      })
+      .first();
+  },
 };

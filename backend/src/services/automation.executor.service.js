@@ -253,7 +253,10 @@ export const automationExecutorService = {
           lead,
           channel: ConversationChannel.WHATSAPP,
           externalUserId: normalizePhone(lead.phone),
-          content: renderTemplate(config.message, lead),
+          content: renderTemplate(config.message || '', lead),
+          templateName: config.templateName || null,
+          templateLanguage: config.templateLanguage || 'pt_BR',
+          templateBodyParams: config.templateBodyParams || null,
         });
         return { status: 'OK' };
       }
@@ -301,7 +304,16 @@ export const automationExecutorService = {
     }
   },
 
-  async sendMessage({ companyId, lead, channel, externalUserId, content }) {
+  async sendMessage({
+    companyId,
+    lead,
+    channel,
+    externalUserId,
+    content,
+    templateName,
+    templateLanguage,
+    templateBodyParams,
+  }) {
     if (!externalUserId) {
       const err = new Error(
         channel === ConversationChannel.WHATSAPP
@@ -324,6 +336,9 @@ export const automationExecutorService = {
       conversation,
       lead,
       content,
+      templateName,
+      templateLanguage,
+      templateBodyParams,
     });
   },
 

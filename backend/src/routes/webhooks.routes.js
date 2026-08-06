@@ -16,4 +16,16 @@ webhooksRoutes.post(
   webhooksController.receiveMetaLeads
 );
 
+webhooksRoutes.get(
+  '/meta/whatsapp',
+  webhookRateLimiter,
+  webhooksController.verifyMetaWhatsapp
+);
+
+webhooksRoutes.post(
+  '/meta/whatsapp',
+  webhookRateLimiter,
+  webhooksController.receiveMetaWhatsapp
+);
+
 export { webhooksRoutes };

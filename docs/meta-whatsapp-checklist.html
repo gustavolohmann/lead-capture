@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Checklist WhatsApp Meta — Lead Capture</title>
+  <style>
+    body { margin: 0; font-family: Inter, system-ui, sans-serif; background: #f8f9ff; color: #0b1c30; line-height: 1.55; }
+    header { background: #0f172a; color: #fff; padding: 28px 20px; }
+    header p { margin: 6px 0 0; color: #bec6e0; }
+    main { max-width: 820px; margin: 28px auto; padding: 0 20px 64px; }
+    .card { background: #fff; border: 1px solid #c3c6d7; border-radius: 12px; padding: 24px; margin-bottom: 16px; }
+    h2 { margin-top: 0; font-size: 1.15rem; }
+    code, .url { background: #eff4ff; padding: 2px 6px; border-radius: 4px; font-size: 0.92em; word-break: break-all; }
+    ol, ul { color: #434655; }
+    a { color: #004ac6; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Checklist WhatsApp → Conversas</h1>
+    <p>O que fazer no Business Manager + screencast para App Review</p>
+  </header>
+  <main>
+    <section class="card">
+      <h2>1. Produção (já no ar)</h2>
+      <ul>
+        <li>App: <span class="url">https://api-production-cbf47.up.railway.app</span></li>
+        <li>Webhook WhatsApp: <span class="url">https://api-production-cbf47.up.railway.app/webhooks/meta/whatsapp</span></li>
+        <li>Webhook Lead Ads: <span class="url">https://api-production-cbf47.up.railway.app/webhooks/meta/leads</span></li>
+        <li>Verify token: o mesmo <code>META_WEBHOOK_VERIFY_TOKEN</code> do Railway</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>2. WABA + número (Business Manager)</h2>
+      <ol>
+        <li>Meta Business Suite → Contas do WhatsApp → criar/associar WABA</li>
+        <li>Adicionar e verificar número de telefone</li>
+        <li>No App Meta → WhatsApp → API Setup: copiar Phone number ID e WABA ID</li>
+        <li>No Lead Capture: Conexão Meta → sincronizar assets (grava <code>phone_number_id</code>)</li>
+      </ol>
+    </section>
+
+    <section class="card">
+      <h2>3. Webhook de mensagens</h2>
+      <ol>
+        <li>App Meta → WhatsApp → Configuration → Webhook</li>
+        <li>Callback URL: webhook WhatsApp acima</li>
+        <li>Verify token: valor do Railway</li>
+        <li>Assinar o campo <strong>messages</strong></li>
+        <li>Testar envio de mensagem do celular para o número da WABA → deve aparecer em Conversas</li>
+      </ol>
+    </section>
+
+    <section class="card">
+      <h2>4. Business Verification</h2>
+      <ol>
+        <li>Business Settings → Security Center → Start Verification</li>
+        <li>Enviar docs da empresa (CNPJ, site, etc.)</li>
+        <li>Sem BV, permissões avançadas de messaging costumam travar no App Review</li>
+      </ol>
+    </section>
+
+    <section class="card">
+      <h2>5. Template do 1º contato</h2>
+      <ol>
+        <li>WhatsApp Manager → Message templates → Create</li>
+        <li>Ex.: nome <code>lead_followup</code>, idioma <code>pt_BR</code>, categoria Utility/Marketing conforme caso</li>
+        <li>Aguardar aprovação</li>
+        <li>No fluxo de automação: preencher “Template WhatsApp” com esse nome</li>
+      </ol>
+    </section>
+
+    <section class="card">
+      <h2>6. Roteiro do screencast (App Review)</h2>
+      <ol>
+        <li>Mostrar login no Lead Capture (produção HTTPS)</li>
+        <li>Conexão Meta ativa + WABA/número sincronizados</li>
+        <li>Lead chega (Lead Ads ou formulário) com telefone válido</li>
+        <li>Automação envia template/mensagem WhatsApp</li>
+        <li>No celular, responder a mensagem</li>
+        <li>Abrir <strong>Conversas</strong> e mostrar a resposta inbound na thread</li>
+      </ol>
+    </section>
+
+    <p><a href="./privacy.html">Privacidade</a> · <a href="./terms.html">Termos</a></p>
+  </main>
+</body>
+</html>

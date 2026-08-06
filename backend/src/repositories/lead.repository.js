@@ -70,6 +70,28 @@ export const leadRepository = {
       .first();
   },
 
+  async findByPhoneDigits(companyId, phoneDigits) {
+    if (!phoneDigits) return null;
+    const digits = String(phoneDigits).replace(/\D/g, '');
+    if (digits.length < 8) return null;
+
+    const leads = await db('leads')
+      .where({ company_id: companyId })
+      .whereNotNull('phone')
+      .select('*');
+
+    const match = leads.find((lead) => {
+      const leadDigits = String(lead.phone || '').replace(/\D/g, '');
+      if (!leadDigits) return false;
+      if (leadDigits === digits) return true;
+      const shorter = leadDigits.length < digits.length ? leadDigits : digits;
+      const longer = leadDigits.length < digits.length ? digits : leadDigits;
+      return longer.endsWith(shorter) && shorter.length >= 8;
+    });
+
+    return match || null;
+  },
+
   async existsByMetaLeadId(metaLeadId) {
     const row = await db('leads').where({ meta_lead_id: metaLeadId }).first('id');
     return Boolean(row);

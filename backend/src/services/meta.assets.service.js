@@ -55,10 +55,17 @@ function mapAdAccountStatus(accountStatus) {
   return String(accountStatus);
 }
 
-function extractWhatsappPhone(waba) {
+function extractWhatsappPhoneInfo(waba) {
   const phones = waba?.phone_numbers?.data || waba?.phone_numbers || [];
-  if (!Array.isArray(phones) || phones.length === 0) return null;
-  return phones[0].display_phone_number || phones[0].phone_number || null;
+  if (!Array.isArray(phones) || phones.length === 0) {
+    return { phoneNumber: null, phoneNumberId: null };
+  }
+  const first = phones[0];
+  return {
+    phoneNumber:
+      first.display_phone_number || first.phone_number || null,
+    phoneNumberId: first.id ? String(first.id) : null,
+  };
 }
 
 export const metaAssetsService = {
@@ -184,10 +191,12 @@ export const metaAssetsService = {
         for (const waba of accounts) {
           if (!waba?.id || seen.has(String(waba.id))) continue;
 
+          const phoneInfo = extractWhatsappPhoneInfo(waba);
           await metaWhatsappRepository.upsert({
             companyId,
             businessAccountId: String(waba.id),
-            phoneNumber: extractWhatsappPhone(waba),
+            phoneNumber: phoneInfo.phoneNumber,
+            phoneNumberId: phoneInfo.phoneNumberId,
           });
           seen.add(String(waba.id));
           count += 1;

@@ -107,18 +107,24 @@ export const whatsappClient = {
     to,
     templateName,
     languageCode = 'pt_BR',
+    components,
     accessToken,
   }) {
+    const template = {
+      name: templateName,
+      language: { code: languageCode },
+    };
+    if (Array.isArray(components) && components.length > 0) {
+      template.components = components;
+    }
+
     return request('POST', `/${phoneNumberId}/messages`, {
       accessToken,
       data: {
         messaging_product: 'whatsapp',
         to: String(to).replace(/\D/g, ''),
         type: 'template',
-        template: {
-          name: templateName,
-          language: { code: languageCode },
-        },
+        template,
       },
     });
   },

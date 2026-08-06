@@ -167,7 +167,8 @@ export const metaGraphClient = {
     return request('GET', `/${businessId}/owned_whatsapp_business_accounts`, {
       params: {
         access_token: accessToken,
-        fields: 'id,name,phone_numbers{display_phone_number,verified_name}',
+        fields:
+          'id,name,phone_numbers{id,display_phone_number,verified_name}',
         limit: 100,
       },
     });
@@ -177,7 +178,8 @@ export const metaGraphClient = {
     return request('GET', `/${businessId}/client_whatsapp_business_accounts`, {
       params: {
         access_token: accessToken,
-        fields: 'id,name,phone_numbers{display_phone_number,verified_name}',
+        fields:
+          'id,name,phone_numbers{id,display_phone_number,verified_name}',
         limit: 100,
       },
     });

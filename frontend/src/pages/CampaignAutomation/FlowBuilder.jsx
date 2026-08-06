@@ -14,6 +14,13 @@ function defaultConfigForType(type) {
     return { field: 'answered', operator: 'equals', value: true };
   }
   if (type === 'ASSIGN_USER') return { userId: null };
+  if (type === 'SEND_WHATSAPP') {
+    return {
+      message: 'Olá {{name}}',
+      templateName: '',
+      templateLanguage: 'pt_BR',
+    };
+  }
   return { message: 'Olá {{name}}' };
 }
 
@@ -89,7 +96,70 @@ export function StepCard({
             </select>
           </label>
 
-          {['SEND_WHATSAPP', 'SEND_INSTAGRAM'].includes(step.type) ? (
+          {step.type === 'SEND_WHATSAPP' ? (
+            <>
+              <label className="flow-field">
+                <span className="flow-field__label">
+                  Template WhatsApp (1º contato)
+                </span>
+                <input
+                  className="flow-field__control"
+                  type="text"
+                  placeholder="ex: lead_followup"
+                  value={step.config?.templateName || ''}
+                  onChange={(e) =>
+                    onChange({
+                      ...step,
+                      config: {
+                        ...step.config,
+                        templateName: e.target.value.trim(),
+                      },
+                    })
+                  }
+                />
+              </label>
+              <label className="flow-field">
+                <span className="flow-field__label">Idioma do template</span>
+                <input
+                  className="flow-field__control"
+                  type="text"
+                  placeholder="pt_BR"
+                  value={step.config?.templateLanguage || 'pt_BR'}
+                  onChange={(e) =>
+                    onChange({
+                      ...step,
+                      config: {
+                        ...step.config,
+                        templateLanguage: e.target.value.trim() || 'pt_BR',
+                      },
+                    })
+                  }
+                />
+              </label>
+              <label className="flow-field">
+                <span className="flow-field__label">
+                  Mensagem (texto livre / fallback)
+                </span>
+                <textarea
+                  className="flow-field__control"
+                  rows={2}
+                  value={step.config?.message || ''}
+                  onChange={(e) =>
+                    onChange({
+                      ...step,
+                      config: { ...step.config, message: e.target.value },
+                    })
+                  }
+                />
+              </label>
+              <p className="flow-hint">
+                Fora da janela de 24h, preencha o template aprovado na Meta. Se
+                houver template, ele é enviado no lugar do texto livre.
+              </p>
+            </>
+          ) : null}
+
+          {step.type === 'SEND_INSTAGRAM' ? (
             <label className="flow-field">
               <span className="flow-field__label">Mensagem</span>
               <textarea
