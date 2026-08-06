@@ -6,6 +6,8 @@ import helmet from 'helmet';
 import { env } from './config/env.js';
 import { routes } from './routes/index.js';
 import { webhooksRoutes } from './routes/webhooks.routes.js';
+import { metaController } from './controllers/meta.controller.js';
+import { oauthRateLimiter } from './middlewares/rateLimit.middleware.js';
 import {
   errorHandler,
   notFoundHandler,
@@ -40,30 +42,25 @@ export function createApp() {
     res.status(200).json({ success: true, message: 'ok' });
   });
 
-  app.use(routes);
+  // OAuth callback permanece na URL cadastrada na Meta (sem /api)
+  app.get('/meta/callback', oauthRateLimiter, metaController.callback);
+
+  // APIs da aplicação sob /api — evita conflito com rotas do SPA
+  // (/campaigns, /leads, /forms, /conversations, /automations, /meta)
+  app.use('/api', routes);
 
   if (env.SERVE_FRONTEND) {
     const distPath = path.resolve(__dirname, '../../frontend/dist');
     app.use(express.static(distPath));
     app.get('*', (req, res, next) => {
-      // APIs que não devem cair no SPA
-      const isApi =
+      if (
+        req.path.startsWith('/api') ||
         req.path.startsWith('/webhooks') ||
-        req.path.startsWith('/auth') ||
-        req.path.startsWith('/leads') ||
-        req.path.startsWith('/campaigns') ||
-        req.path.startsWith('/conversations') ||
-        req.path.startsWith('/automations') ||
-        req.path.startsWith('/forms') ||
-        req.path.startsWith('/lead-forms') ||
-        req.path.startsWith('/meta/connect') ||
-        req.path.startsWith('/meta/callback') ||
-        req.path.startsWith('/meta/status') ||
-        req.path.startsWith('/meta/disconnect') ||
-        req.path.startsWith('/meta/assets') ||
-        req.path === '/health';
-
-      if (isApi) return next();
+        req.path === '/health' ||
+        req.path === '/meta/callback'
+      ) {
+        return next();
+      }
 
       res.sendFile(path.join(distPath, 'index.html'), (err) => {
         if (err) next();

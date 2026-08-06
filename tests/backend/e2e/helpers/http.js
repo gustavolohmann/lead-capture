@@ -12,8 +12,27 @@ export function getApp() {
   return app;
 }
 
+function withApiPrefix(path) {
+  if (
+    path.startsWith('/api') ||
+    path.startsWith('/webhooks') ||
+    path.startsWith('/health') ||
+    path.startsWith('/meta/callback')
+  ) {
+    return path;
+  }
+  return `/api${path.startsWith('/') ? path : `/${path}`}`;
+}
+
 export function api() {
-  return request(getApp());
+  const agent = request(getApp());
+  return {
+    get: (path) => agent.get(withApiPrefix(path)),
+    post: (path) => agent.post(withApiPrefix(path)),
+    put: (path) => agent.put(withApiPrefix(path)),
+    patch: (path) => agent.patch(withApiPrefix(path)),
+    delete: (path) => agent.delete(withApiPrefix(path)),
+  };
 }
 
 export async function loginAs(email, password) {

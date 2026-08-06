@@ -17,7 +17,7 @@ export function clearStoredToken() {
 export const api = axios.create({
   baseURL:
     import.meta.env.VITE_API_URL ||
-    (import.meta.env.PROD ? '' : 'http://localhost:3001'),
+    (import.meta.env.PROD ? '/api' : 'http://localhost:3001/api'),
   headers: {
     'Content-Type': 'application/json',
   },
