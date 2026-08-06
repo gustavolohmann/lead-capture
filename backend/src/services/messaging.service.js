@@ -38,6 +38,50 @@ function normalizePhone(phone) {
   return digits || null;
 }
 
+async function resolveWhatsappSender(companyId, accessToken) {
+  const waAccounts = await metaWhatsappRepository.findByCompanyId(companyId);
+  if (!waAccounts.length) return null;
+
+  const withStoredId = waAccounts.find((account) => account.phone_number_id);
+  if (withStoredId?.phone_number_id) {
+    return {
+      phoneNumberId: String(withStoredId.phone_number_id),
+      account: withStoredId,
+    };
+  }
+
+  for (const account of waAccounts) {
+    if (!account.business_account_id) continue;
+    try {
+      const phoneNumberId = await whatsappClient.resolvePhoneNumberId(
+        account.business_account_id,
+        accessToken
+      );
+      if (!phoneNumberId) continue;
+
+      await metaWhatsappRepository.upsert({
+        companyId,
+        businessAccountId: String(account.business_account_id),
+        phoneNumber: account.phone_number,
+        phoneNumberId: String(phoneNumberId),
+      });
+
+      return {
+        phoneNumberId: String(phoneNumberId),
+        account,
+      };
+    } catch (error) {
+      logger.error('Falha ao resolver phone_number_id WhatsApp', {
+        companyId,
+        wabaId: account.business_account_id,
+        detail: error.message,
+      });
+    }
+  }
+
+  return null;
+}
+
 function extractInboundText(message) {
   if (!message) return null;
   if (message.type === 'text') return message.text?.body || null;
@@ -211,15 +255,16 @@ export const messagingService = {
           storedContent = content || `[template:${templateName}]`;
         }
       } else {
-        const wabaId = waAccounts[0].business_account_id;
-        const phoneNumberId =
-          waAccounts[0].phone_number_id ||
-          (await whatsappClient.resolvePhoneNumberId(wabaId, accessToken));
+        const sender = await resolveWhatsappSender(companyId, accessToken);
+        const phoneNumberId = sender?.phoneNumberId;
         if (!phoneNumberId) {
-          throw new AppError('phone_number_id WhatsApp não encontrado', {
-            statusCode: 400,
-            code: 'WHATSAPP_PHONE_NUMBER_ID_MISSING',
-          });
+          throw new AppError(
+            'phone_number_id WhatsApp não encontrado. Sincronize os ativos em Conexão Meta.',
+            {
+              statusCode: 400,
+              code: 'WHATSAPP_PHONE_NUMBER_ID_MISSING',
+            }
+          );
         }
 
         if (templateName) {

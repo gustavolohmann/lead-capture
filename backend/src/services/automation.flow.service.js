@@ -223,6 +223,10 @@ export const automationFlowService = {
       });
     }
 
+    const testPhone = String(
+      process.env.AUTOMATION_TEST_PHONE || '5519995604044'
+    ).replace(/\D/g, '');
+
     const lead = await leadRepository.create({
       companyId,
       pageId: null,
@@ -230,7 +234,7 @@ export const automationFlowService = {
       metaLeadId: `test_auto_${automationId}_${Date.now()}`,
       name: 'Lead Teste Automação',
       email: 'teste.automacao@example.com',
-      phone: '+5541999990000',
+      phone: testPhone,
       source: 'FORM',
       campaignId: null,
       campaignName: automation.campaign_id
