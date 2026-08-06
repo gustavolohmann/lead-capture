@@ -1,0 +1,207 @@
+.forms-page__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.forms-page__subtitle {
+  margin-top: 8px;
+  color: #434655;
+  max-width: 40rem;
+}
+
+.forms-page__card {
+  padding: 24px;
+  max-width: 920px;
+}
+
+.forms-page__section-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0b1c30;
+}
+
+.forms-page__error {
+  color: #b42318;
+  font-size: 13px;
+}
+
+.forms-page__success {
+  color: #15803d;
+  font-size: 13px;
+}
+
+.forms-page__empty {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+}
+
+.forms-table-wrap {
+  overflow-x: auto;
+}
+
+.forms-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.forms-table th,
+.forms-table td {
+  text-align: left;
+  padding: 12px 10px;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: top;
+  font-size: 14px;
+}
+
+.forms-table__desc {
+  margin-top: 4px;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.forms-table__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.forms-builder {
+  display: grid;
+  gap: 16px;
+}
+
+.forms-builder__fields-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.forms-field-card {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #c3c6d7;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.forms-field-card__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.forms-field-card__required {
+  align-self: end;
+  margin-bottom: 10px;
+}
+
+.forms-field-card__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.forms-textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.forms-builder__footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.forms-preview {
+  display: grid;
+  gap: 14px;
+}
+
+.forms-preview__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.forms-table__link {
+  display: inline-block;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--brand-blue, #2563eb);
+  font-size: 12px;
+}
+
+.forms-builder__header-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.forms-page__public-url {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--brand-slate, #64748b);
+}
+
+.forms-page__public-url a {
+  color: var(--brand-blue, #2563eb);
+  word-break: break-all;
+}
+
+.form-public {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.08), transparent 40%),
+    #f8fafc;
+}
+
+.form-public__card {
+  width: min(100%, 560px);
+  padding: 28px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+.form-public__header {
+  margin-bottom: 20px;
+}
+
+.form-public__title {
+  margin: 0;
+  font-size: 24px;
+  color: #0f172a;
+}
+
+.form-public__subtitle {
+  margin: 8px 0 0;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.form-public__error {
+  color: #b42318;
+  font-size: 14px;
+}
+
+@media (max-width: 720px) {
+  .forms-page__header {
+    flex-direction: column;
+  }
+
+  .forms-field-card__row {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "name": "lead-capture",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "migrate": "node scripts/migrate.js",
+    "seed": "node scripts/seed.js",
+    "seed:insurance-lead": "node scripts/seed-insurance-lead.js",
+    "backfill:lead-origin": "node scripts/backfill-lead-origin.js",
+    "dev:backend": "npm run dev --prefix backend",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "install:all": "npm install && npm install --prefix backend && npm install --prefix frontend",
+    "test:api": "vitest run --config vitest.e2e.config.js",
+    "test:e2e": "playwright test",
+    "test:all": "npm run test:api && npm run test:e2e"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "dotenv": "^16.4.7",
+    "knex": "^3.1.0",
+    "mysql2": "^3.12.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.51.0",
+    "jest": "^29.7.0",
+    "supertest": "^7.0.0",
+    "vitest": "^4.1.10"
+  }
+}

@@ -1,0 +1,440 @@
+.flow-page {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding-bottom: 7rem;
+}
+
+.flow-page__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.flow-page__breadcrumb {
+  margin: 0 0 8px;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 400;
+  color: var(--on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.flow-page__title {
+  margin: 0;
+  font-size: 32px;
+  line-height: 40px;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+  color: var(--on-background);
+}
+
+.flow-page__subtitle {
+  margin: 4px 0 0;
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--on-surface-variant);
+}
+
+.flow-page__back {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  border: 1px solid var(--outline-variant);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--on-surface);
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+
+.flow-page__back:hover {
+  background: var(--surface-container-low);
+}
+
+.flow-page__canvas {
+  background: #fff;
+  border: 1px solid var(--outline-variant);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.flow-page__error {
+  margin: 16px 0 0;
+  color: var(--error);
+  font-size: 13px;
+}
+
+.flow-page__info {
+  margin: 16px 0 0;
+  color: var(--success);
+  font-size: 13px;
+}
+
+.flow-field {
+  display: grid;
+  gap: 4px;
+}
+
+.flow-field--name {
+  margin-bottom: 32px;
+  gap: 8px;
+}
+
+.flow-field__label {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--on-surface-variant);
+}
+
+.flow-field__label--md {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--on-surface);
+}
+
+.flow-field__control {
+  width: 100%;
+  border: 1px solid var(--outline-variant);
+  border-radius: 6px;
+  background: #fff;
+  padding: 6px 12px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--on-surface);
+  font-family: inherit;
+  resize: none;
+}
+
+.flow-field__control--lg {
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.flow-field__control--muted {
+  background: var(--surface);
+}
+
+.flow-field__control:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(0, 74, 198, 0.18);
+}
+
+.flow-builder__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.flow-builder__title {
+  margin: 0;
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 600;
+  color: var(--on-background);
+}
+
+.flow-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border: 1px solid var(--primary-fixed-dim);
+  border-radius: 8px;
+  background: var(--surface-container-low);
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.flow-add-btn .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.flow-add-btn:hover {
+  background: var(--primary);
+  color: #fff;
+}
+
+.flow-builder__list {
+  display: grid;
+  gap: 0;
+}
+
+.flow-builder__item {
+  display: grid;
+}
+
+.flow-step-card {
+  position: relative;
+  border: 1px solid var(--outline-variant);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  padding: 16px;
+  transition: border-color 0.15s ease;
+}
+
+.flow-step-card:hover {
+  border-color: var(--primary-fixed-dim);
+}
+
+.flow-step-card__drag {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--outline-variant);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.flow-step-card:hover .flow-step-card__drag {
+  opacity: 1;
+}
+
+.flow-step-card__body {
+  padding-left: 24px;
+}
+
+.flow-step-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.flow-step-card__title {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--on-background);
+}
+
+.flow-step-card__badge {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-container);
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.flow-step-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.flow-icon-btn {
+  border: 0;
+  background: transparent;
+  color: var(--on-surface-variant);
+  padding: 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+}
+
+.flow-icon-btn:hover:not(:disabled) {
+  background: var(--surface-container);
+}
+
+.flow-icon-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.flow-icon-btn .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.flow-remove-btn {
+  border: 0;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(186, 26, 26, 0.08);
+  color: var(--error);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.flow-remove-btn:hover {
+  background: rgba(186, 26, 26, 0.16);
+}
+
+.flow-step-card__fields {
+  display: grid;
+  gap: 16px;
+}
+
+.flow-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--on-surface-variant);
+}
+
+.flow-divider {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 0;
+}
+
+.flow-divider::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--outline-variant);
+  transition: background 0.15s ease;
+}
+
+.flow-divider:hover::before {
+  background: var(--primary);
+}
+
+.flow-divider__btn {
+  position: relative;
+  z-index: 1;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid var(--outline-variant);
+  background: #fff;
+  color: var(--on-surface-variant);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.flow-divider:hover .flow-divider__btn {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.flow-divider__btn .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.flow-sticky-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  width: 100%;
+  padding: 16px 24px;
+  background: #fff;
+  border-top: 1px solid var(--outline-variant);
+  box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.flow-sticky-bar__inner {
+  max-width: none;
+  width: 100%;
+  margin: 0;
+  display: flex;
+  gap: 16px;
+}
+
+@media (min-width: 900px) {
+  .flow-sticky-bar {
+    left: 256px;
+    width: auto;
+  }
+}
+
+.flow-sticky-bar__primary,
+.flow-sticky-bar__secondary {
+  padding: 8px 24px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.flow-sticky-bar__primary {
+  border: 0;
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.flow-sticky-bar__primary:hover:not(:disabled) {
+  background: var(--primary-container);
+}
+
+.flow-sticky-bar__secondary {
+  border: 1px solid var(--outline-variant);
+  background: #fff;
+  color: var(--on-surface);
+}
+
+.flow-sticky-bar__secondary:hover:not(:disabled) {
+  background: var(--surface-container-low);
+}
+
+.flow-sticky-bar__primary:disabled,
+.flow-sticky-bar__secondary:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+@media (max-width: 720px) {
+  .flow-page__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .flow-step-card__body {
+    padding-left: 0;
+  }
+
+  .flow-step-card__drag {
+    display: none;
+  }
+
+  .flow-sticky-bar__inner {
+    flex-direction: column;
+  }
+
+  .flow-sticky-bar__primary,
+  .flow-sticky-bar__secondary {
+    width: 100%;
+  }
+}

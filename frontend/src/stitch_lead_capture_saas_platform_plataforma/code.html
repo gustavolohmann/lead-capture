@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Lead Capture - Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container": "#e5eeff",
+                        "on-primary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "secondary-container": "#dae2fd",
+                        "inverse-on-surface": "#eaf1ff",
+                        "secondary": "#565e74",
+                        "on-tertiary-fixed": "#360f00",
+                        "on-secondary-fixed-variant": "#3f465c",
+                        "surface-dim": "#cbdbf5",
+                        "tertiary-fixed-dim": "#ffb596",
+                        "on-secondary": "#ffffff",
+                        "tertiary-container": "#bc4800",
+                        "surface-variant": "#d3e4fe",
+                        "primary-fixed": "#dbe1ff",
+                        "surface-container-low": "#eff4ff",
+                        "on-tertiary": "#ffffff",
+                        "secondary-fixed": "#dae2fd",
+                        "primary": "#004ac6",
+                        "on-error-container": "#93000a",
+                        "tertiary": "#943700",
+                        "on-primary-fixed-variant": "#003ea8",
+                        "primary-container": "#2563eb",
+                        "surface-bright": "#f8f9ff",
+                        "secondary-fixed-dim": "#bec6e0",
+                        "outline": "#737686",
+                        "outline-variant": "#c3c6d7",
+                        "background": "#f8f9ff",
+                        "on-tertiary-fixed-variant": "#7d2d00",
+                        "surface-tint": "#0053db",
+                        "surface-container-lowest": "#ffffff",
+                        "on-surface-variant": "#434655",
+                        "tertiary-fixed": "#ffdbcd",
+                        "on-secondary-fixed": "#131b2e",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "on-primary-container": "#eeefff",
+                        "on-secondary-container": "#5c647a",
+                        "surface": "#f8f9ff",
+                        "on-surface": "#0b1c30",
+                        "on-tertiary-container": "#ffede6",
+                        "on-primary-fixed": "#00174b",
+                        "inverse-surface": "#0F172A", // Overriding for specific dark sidebar requirement
+                        "on-background": "#0b1c30",
+                        "on-error": "#ffffff",
+                        "error": "#ba1a1a",
+                        "surface-container-high": "#dce9ff",
+                        "inverse-primary": "#b4c5ff",
+                        "surface-container-highest": "#d3e4fe"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "xxl": "32px",
+                        "xxxl": "48px",
+                        "md": "12px",
+                        "xl": "24px",
+                        "sm": "8px",
+                        "lg": "16px",
+                        "xs": "4px"
+                    },
+                    "fontFamily": {
+                        "input-text": ["Inter"],
+                        "body-default": ["Inter"],
+                        "h2-header": ["Inter"],
+                        "subtitle": ["Inter"],
+                        "caption": ["Inter"],
+                        "label-medium": ["Inter"],
+                        "button-text": ["Inter"],
+                        "h1-display": ["Inter"]
+                    },
+                    "fontSize": {
+                        "input-text": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-default": ["15px", { "lineHeight": "22px", "fontWeight": "400" }],
+                        "h2-header": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "subtitle": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "caption": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "label-medium": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "button-text": ["15px", { "lineHeight": "20px", "fontWeight": "600" }],
+                        "h1-display": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .icon-fill {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-default flex h-screen overflow-hidden">
+<!-- SideNavBar (JSON Component & Blueprint Rule) -->
+<nav class="bg-inverse-surface h-screen w-64 fixed left-0 top-0 shadow-sm flex flex-col h-full py-xl z-50 transition-transform md:translate-x-0 -translate-x-full" id="side-nav">
+<!-- Header/Brand -->
+<div class="px-xl mb-8 flex items-center gap-sm">
+<img alt="Lead Capture Logo" class="w-8 h-8 rounded-sm" src="https://lh3.googleusercontent.com/aida/AP1WRLu-_ChzzRbie4rk5-9mRFnZk8jyY5RFMq9qIj1SsbC6MZHts0wMIZUzGKweN-ByulXaweMNf4z4vGI5pMC4mCWdFWjVyyLOtSpBeWjGCb9BLPNm9NZB_l7yHX6wfYtRXAOEgS0oTl7Fg4EUm7luiT9ZyA969n69-eCVayE38uja6JZ1qtbRo6kQRdxJmiCvoBNyM4dVuDa2WYwXy2YeF0sd7sXCzIMqVXrSe3RckCBunfLkEMPIXxpGhA"/>
+<div>
+<div class="font-h2-header text-h2-header font-bold text-surface-bright" style="font-size: 18px; line-height: 24px;">Lead Capture</div>
+<div class="text-secondary-fixed-dim text-caption font-caption">Enterprise Tier</div>
+</div>
+</div>
+<!-- CTA -->
+<div class="px-4 mb-6">
+<button class="w-full bg-primary text-on-primary font-button-text text-button-text rounded-xl py-2 flex items-center justify-center gap-2 hover:bg-on-primary-fixed-variant transition-colors">
+<span class="material-symbols-outlined icon-fill">add</span>
+                New Campaign
+            </button>
+</div>
+<!-- Navigation Links -->
+<div class="flex-1 overflow-y-auto px-2 space-y-1">
+<!-- Active State: Integrations (Based on intent of the prompt image connecting to Meta) -->
+<a class="bg-primary text-on-primary rounded-xl mx-2 my-1 px-4 py-3 flex items-center gap-3 active:scale-95 transform transition-transform" href="#">
+<span class="material-symbols-outlined icon-fill" data-icon="settings_input_component">settings_input_component</span>
+<span class="font-label-medium text-label-medium">Integrations</span>
+</a>
+<a class="text-secondary-fixed-dim hover:text-surface-bright rounded-xl mx-2 my-1 px-4 py-3 flex items-center gap-3 transition-colors hover:bg-on-secondary-fixed-variant transition-all duration-200 active:scale-95 transform transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label-medium text-label-medium">Dashboard</span>
+</a>
+<a class="text-secondary-fixed-dim hover:text-surface-bright rounded-xl mx-2 my-1 px-4 py-3 flex items-center gap-3 transition-colors hover:bg-on-secondary-fixed-variant transition-all duration-200 active:scale-95 transform transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="filter_list">filter_list</span>
+<span class="font-label-medium text-label-medium">Leads</span>
+</a>
+<a class="text-secondary-fixed-dim hover:text-surface-bright rounded-xl mx-2 my-1 px-4 py-3 flex items-center gap-3 transition-colors hover:bg-on-secondary-fixed-variant transition-all duration-200 active:scale-95 transform transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="leaderboard">leaderboard</span>
+<span class="font-label-medium text-label-medium">Insights</span>
+</a>
+<a class="text-secondary-fixed-dim hover:text-surface-bright rounded-xl mx-2 my-1 px-4 py-3 flex items-center gap-3 transition-colors hover:bg-on-secondary-fixed-variant transition-all duration-200 active:scale-95 transform transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label-medium text-label-medium">Settings</span>
+</a>
+</div>
+<!-- Footer Profile & Actions -->
+<div class="mt-auto pt-4 border-t border-secondary-fixed-dim/20 px-4">
+<a class="text-secondary-fixed-dim hover:text-surface-bright rounded-xl mx-2 my-1 px-4 py-2 flex items-center gap-3 transition-colors hover:bg-on-secondary-fixed-variant transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+<span class="font-label-medium text-label-medium">Support</span>
+</a>
+<div class="mt-4 bg-on-background/50 rounded-xl p-3 flex flex-col gap-3">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-on-primary text-caption font-bold">AL</div>
+<div class="flex-1 min-w-0">
+<div class="text-surface-bright text-label-medium font-label-medium truncate">Administrator</div>
+<div class="text-secondary-fixed-dim text-caption font-caption flex items-center gap-1">
+<span class="bg-primary/20 text-primary-fixed px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Master</span>
+</div>
+</div>
+</div>
+<button class="w-full bg-surface-container-lowest text-on-surface font-label-medium text-label-medium py-1.5 rounded-lg border border-outline-variant hover:bg-surface-container-low transition-colors flex justify-center items-center gap-2">
+<span class="material-symbols-outlined" data-icon="logout" style="font-size: 16px;">logout</span>
+                    Sign Out
+                </button>
+</div>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="flex-1 ml-0 md:ml-64 flex flex-col h-screen overflow-hidden bg-background">
+<!-- TopAppBar (JSON Component) -->
+<header class="bg-surface h-16 w-full md:w-[calc(100%-16rem)] fixed top-0 z-40 flex justify-between items-center px-xxl border-b border-outline-variant flat no shadows transition-all duration-300">
+<!-- Mobile Menu Toggle -->
+<button class="md:hidden text-on-surface-variant hover:bg-surface-container-low p-2 rounded-full transition-colors mr-2" id="mobile-menu-btn">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<div class="flex items-center gap-4 flex-1">
+<!-- Search on Left -->
+<div class="relative max-w-md w-full focus-within:ring-2 focus-within:ring-primary rounded-lg hidden md:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg pl-10 pr-4 py-2 text-input-text font-input-text focus:outline-none focus:border-primary transition-colors" placeholder="Search leads, campaigns..." type="text"/>
+</div>
+</div>
+<!-- Actions -->
+<div class="flex items-center gap-2 md:gap-4">
+<button class="text-on-surface-variant hover:bg-surface-container-low p-2 rounded-full transition-colors relative">
+<span class="material-symbols-outlined" data-icon="history">history</span>
+</button>
+<button class="text-on-surface-variant hover:bg-surface-container-low p-2 rounded-full transition-colors relative">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<div class="h-6 w-px bg-outline-variant mx-1 hidden md:block"></div>
+<button class="hidden md:flex items-center gap-2 text-primary font-button-text text-button-text hover:bg-surface-container-low px-4 py-2 rounded-lg transition-colors border border-outline-variant">
+<span class="material-symbols-outlined" style="font-size: 18px;">download</span>
+                    Export Data
+                </button>
+<img alt="Administrator" class="w-8 h-8 rounded-full border border-outline-variant ml-2 md:hidden" data-alt="A small, professional portrait of a business user serving as a profile avatar. Clean lighting, neutral background, suitable for a B2B SaaS platform dashboard." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBBVsILl0jaVAQcPFjHQHwspRg2-CDAAmVbMGp1P-sbRJxxZsBwv6ceaqO7nAtwpIomYcIVTmGdq47_CpfYooE1SjpC6EtsTQKs2nj3KWWyUorPRnUehEg0KFflBMzrMSj02LmWkT_Tp2Bsl055dJYkAj0uFS4SVCE98lk8Lzl8erzi3xIY1Ug3mxWNZDL2Acgdw0imczfu3PHafixfk0XjmZ0o8CBb84lizU_bBd-fqD4tv3h7T9c"/>
+</div>
+</header>
+<!-- Content Area -->
+<div class="flex-1 overflow-y-auto mt-16 p-lg md:p-xxl">
+<!-- Page Header -->
+<div class="mb-xl">
+<h1 class="font-h1-display text-h1-display text-on-background mb-2">Conexão Meta</h1>
+<p class="font-body-default text-body-default text-on-surface-variant">Conecte sua conta do Facebook Business para capturar leads.</p>
+</div>
+<!-- Main Interactive Card -->
+<div class="max-w-2xl">
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-[0_4px_20px_rgba(15,23,42,0.05)] p-xl">
+<div class="flex items-start gap-4 mb-6">
+<div class="w-12 h-12 rounded-lg bg-surface-container flex items-center justify-center flex-shrink-0 text-primary">
+<span class="material-symbols-outlined" style="font-size: 28px;">hub</span>
+</div>
+<div>
+<h2 class="font-h2-header text-h2-header text-on-background mb-1" style="font-size: 18px; line-height: 24px;">Conecte sua conta Meta</h2>
+<p class="font-body-default text-body-default text-on-surface-variant">Autorize o Lead Capture a acessar suas páginas e formulários de lead ads.</p>
+</div>
+</div>
+<button class="w-full bg-primary text-on-primary font-button-text text-button-text h-10 rounded-lg flex items-center justify-center gap-2 hover:bg-on-primary-fixed-variant transition-colors shadow-sm">
+<svg class="w-5 h-5 fill-current" viewbox="0 0 24 24">
+<path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"></path>
+</svg>
+                        Conectar Facebook
+                    </button>
+</div>
+</div>
+<!-- Empty State / Background illustration for visual interest in a sparse layout -->
+<div class="mt-xxxl opacity-30 pointer-events-none flex justify-center w-full max-w-2xl">
+
+</div>
+</div>
+</main>
+<!-- Simple script for mobile menu toggle -->
+<script>
+        document.getElementById('mobile-menu-btn').addEventListener('click', function() {
+            const nav = document.getElementById('side-nav');
+            nav.classList.toggle('-translate-x-full');
+        });
+    </script>
+</body></html>

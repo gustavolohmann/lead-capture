@@ -1,0 +1,74 @@
+.automations-page__header {
+  margin-bottom: var(--space-xl);
+}
+
+.automations-page__subtitle {
+  margin-top: var(--space-sm);
+  color: var(--brand-slate);
+}
+
+.automations-page__card {
+  max-width: 860px;
+  padding: var(--space-xl);
+  margin-bottom: var(--space-xl);
+}
+
+.automations-page__section {
+  margin: 0 0 var(--space-lg);
+  font-size: var(--text-label);
+  font-weight: 600;
+}
+
+.automations-form {
+  display: grid;
+  gap: var(--space-md);
+  max-width: 520px;
+}
+
+.automations-textarea {
+  height: auto;
+  min-height: 96px;
+  padding-top: 10px;
+  resize: vertical;
+}
+
+.automations-hint {
+  margin: 0;
+  color: var(--brand-slate);
+  font-size: var(--text-caption);
+}
+
+.automations-page__error {
+  color: var(--error);
+}
+
+.automations-page__info {
+  color: var(--success);
+}
+
+.automations-empty {
+  color: var(--brand-slate);
+}
+
+.automations-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.automations-table th,
+.automations-table td {
+  text-align: left;
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--brand-border);
+}
+
+.automations-table th {
+  background: var(--brand-gray);
+  font-size: var(--text-label);
+}
+
+.automations-table .btn {
+  height: 32px;
+  padding: 0 12px;
+  font-size: 13px;
+}

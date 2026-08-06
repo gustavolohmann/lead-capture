@@ -1,0 +1,13 @@
+CREATE TABLE IF NOT EXISTS forms (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  company_id INT UNSIGNED NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  description TEXT NULL,
+  status VARCHAR(30) NOT NULL DEFAULT 'ACTIVE',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_forms_company
+    FOREIGN KEY (company_id) REFERENCES companies(id),
+  INDEX idx_forms_company_id (company_id),
+  INDEX idx_forms_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

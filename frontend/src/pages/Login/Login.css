@@ -1,0 +1,430 @@
+/* Login — Stitch 1:1 + 3 escalas desktop (sm / md / lg) */
+
+.lc-login {
+  /* Mobile / base */
+  --lc-card-max: 440px;
+  --lc-card-pad: 32px;
+  --lc-title: 24px;
+  --lc-title-lh: 32px;
+  --lc-subtitle: 16px;
+  --lc-label: 14px;
+  --lc-input-h: 40px;
+  --lc-input-fs: 16px;
+  --lc-icon-size: 20px;
+  --lc-icon-slot: 40px;
+  --lc-btn-h: 48px;
+  --lc-btn-fs: 15px;
+  --lc-brand-pad: 32px;
+  --lc-brand-title: 28px;
+  --lc-brand-title-lh: 36px;
+  --lc-gap: 16px;
+
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 22px;
+  color: #0b1c30;
+  background: #f8fafc;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== Left brand pane ===== */
+.lc-login__brand {
+  display: none;
+  position: relative;
+  width: 50%;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: var(--lc-brand-pad);
+  overflow: hidden;
+  background-color: #0f172a;
+  background-image:
+    radial-gradient(circle at 15% 50%, rgba(255, 255, 255, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 85% 30%, rgba(37, 99, 235, 0.15) 0%, transparent 50%);
+}
+
+.lc-login__brand-grid {
+  position: absolute;
+  inset: 0;
+  opacity: 0.4;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px) 0 0 / 40px 40px,
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px) 0 0 / 40px 40px;
+}
+
+.lc-login__brand-grid::after {
+  content: '';
+  position: absolute;
+  top: 20%;
+  left: 10%;
+  width: 80%;
+  height: 60%;
+  opacity: 0.6;
+  background:
+    url('data:image/svg+xml;utf8,<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M10,50 L40,20 L70,60 L90,30" stroke="rgba(255,255,255,0.1)" stroke-width="2" fill="none"/><circle cx="10" cy="50" r="3" fill="rgba(255,255,255,0.2)"/><circle cx="40" cy="20" r="3" fill="rgba(255,255,255,0.2)"/><circle cx="70" cy="60" r="3" fill="rgba(255,255,255,0.2)"/><circle cx="90" cy="30" r="3" fill="rgba(255,255,255,0.2)"/></svg>')
+    no-repeat center center;
+  background-size: contain;
+}
+
+.lc-login__brand-logo,
+.lc-login__brand-copy {
+  position: relative;
+  z-index: 1;
+}
+
+.lc-login__logo-img {
+  display: block;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.lc-login__logo-img--lg {
+  width: 48px;
+  height: 48px;
+}
+
+.lc-login__logo-img--sm {
+  width: 40px;
+  height: 40px;
+}
+
+.lc-login__logo-fallback {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.lc-login__logo-fallback--sm {
+  width: 40px;
+  height: 40px;
+  font-size: 14px;
+}
+
+.lc-login__logo-fallback--visible {
+  display: inline-flex;
+}
+
+.lc-login__brand-copy {
+  max-width: 32rem;
+  margin-bottom: 48px;
+}
+
+.lc-login__brand-title {
+  margin: 0 0 16px;
+  color: #ffffff;
+  font-size: var(--lc-brand-title);
+  line-height: var(--lc-brand-title-lh);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.lc-login__brand-subtitle {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: var(--lc-subtitle);
+  line-height: 24px;
+  font-weight: 400;
+}
+
+/* ===== Right form pane ===== */
+.lc-login__main {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: #f8fafc;
+}
+
+.lc-login__mobile-logo {
+  display: none;
+  position: absolute;
+  top: 24px;
+  left: 24px;
+}
+
+.lc-login__card {
+  width: 100%;
+  max-width: var(--lc-card-max);
+  padding: var(--lc-card-pad);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+}
+
+.lc-login__card-header {
+  margin-bottom: 32px;
+}
+
+.lc-login__card-title {
+  margin: 0 0 8px;
+  color: #0f172a;
+  font-size: var(--lc-title);
+  line-height: var(--lc-title-lh);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.lc-login__card-subtitle {
+  margin: 0;
+  color: #475569;
+  font-size: var(--lc-subtitle);
+  line-height: 24px;
+  font-weight: 400;
+}
+
+.lc-login__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lc-gap);
+}
+
+.lc-login__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lc-login__label {
+  display: block;
+  color: #0b1c30;
+  font-size: var(--lc-label);
+  line-height: 20px;
+  font-weight: 500;
+}
+
+.lc-login__control {
+  position: relative;
+  width: 100%;
+  height: var(--lc-input-h);
+}
+
+.lc-login__icon {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--lc-icon-slot);
+  color: #737686;
+  z-index: 2;
+  line-height: 0;
+}
+
+.lc-login__icon--left {
+  left: 0;
+  pointer-events: none;
+}
+
+.lc-login__icon--right {
+  right: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.lc-login__icon--right:hover {
+  color: #0b1c30;
+}
+
+.lc-login__svg {
+  display: block;
+  width: var(--lc-icon-size);
+  height: var(--lc-icon-size);
+  flex-shrink: 0;
+}
+
+.lc-login__input {
+  display: block;
+  width: 100%;
+  height: var(--lc-input-h);
+  margin: 0;
+  padding: 0 12px 0 var(--lc-icon-slot);
+  border: 1px solid #c3c6d7;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #0b1c30;
+  font-family: inherit;
+  font-size: var(--lc-input-fs);
+  line-height: var(--lc-input-h);
+  font-weight: 400;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.lc-login__input--password {
+  padding-right: var(--lc-icon-slot);
+}
+
+.lc-login__input::placeholder {
+  color: #737686;
+  opacity: 1;
+}
+
+.lc-login__input:focus {
+  outline: none;
+  border-color: #004ac6;
+  box-shadow: 0 0 0 2px rgba(0, 74, 198, 0.25);
+}
+
+.lc-login__error {
+  margin: 0;
+  color: #ba1a1a;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.lc-login__submit-wrap {
+  padding-top: 8px;
+}
+
+.lc-login__submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: var(--lc-btn-h);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: var(--lc-btn-fs);
+  line-height: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, filter 0.15s ease;
+}
+
+.lc-login__submit:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.lc-login__submit:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #004ac6;
+}
+
+.lc-login__submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.lc-login__footer {
+  margin-top: 24px;
+  text-align: center;
+}
+
+.lc-login__forgot {
+  color: #2563eb;
+  font-size: var(--lc-label);
+  line-height: 20px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.lc-login__forgot:hover {
+  color: #003ea8;
+}
+
+/* Mobile */
+@media (max-width: 1023px) {
+  .lc-login__mobile-logo {
+    display: block;
+  }
+}
+
+/* ===== Desktop pequeno (1024–1279) ===== */
+@media (min-width: 1024px) {
+  .lc-login {
+    --lc-card-max: 440px;
+    --lc-card-pad: 40px;
+    --lc-title: 28px;
+    --lc-title-lh: 36px;
+    --lc-input-h: 40px;
+    --lc-icon-size: 18px;
+    --lc-icon-slot: 40px;
+    --lc-btn-h: 48px;
+    --lc-brand-pad: 40px;
+    --lc-brand-title: 30px;
+    --lc-brand-title-lh: 38px;
+  }
+
+  .lc-login__brand {
+    display: flex;
+  }
+
+  .lc-login__main {
+    width: 50%;
+    padding: 24px;
+  }
+}
+
+/* ===== Desktop médio (1280–1535) ===== */
+@media (min-width: 1280px) {
+  .lc-login {
+    --lc-card-max: 460px;
+    --lc-card-pad: 48px;
+    --lc-title: 32px;
+    --lc-title-lh: 40px;
+    --lc-input-h: 44px;
+    --lc-icon-size: 20px;
+    --lc-icon-slot: 44px;
+    --lc-btn-h: 48px;
+    --lc-brand-pad: 48px;
+    --lc-brand-title: 32px;
+    --lc-brand-title-lh: 40px;
+    --lc-gap: 18px;
+  }
+
+  .lc-login__main {
+    padding: 32px;
+  }
+}
+
+/* ===== Desktop grande (1536+) ===== */
+@media (min-width: 1536px) {
+  .lc-login {
+    --lc-card-max: 480px;
+    --lc-card-pad: 52px;
+    --lc-title: 32px;
+    --lc-title-lh: 40px;
+    --lc-input-h: 48px;
+    --lc-icon-size: 22px;
+    --lc-icon-slot: 48px;
+    --lc-btn-h: 52px;
+    --lc-btn-fs: 16px;
+    --lc-brand-pad: 56px;
+    --lc-brand-title: 36px;
+    --lc-brand-title-lh: 44px;
+    --lc-gap: 20px;
+  }
+
+  .lc-login__main {
+    padding: 40px;
+  }
+
+  .lc-login__logo-img--lg {
+    width: 52px;
+    height: 52px;
+  }
+}

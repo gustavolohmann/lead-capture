@@ -1,0 +1,121 @@
+.conversations-page__header {
+  margin-bottom: var(--space-xl);
+}
+
+.conversations-page__subtitle {
+  margin-top: var(--space-sm);
+  color: var(--brand-slate);
+}
+
+.conversations-page__error {
+  color: var(--error);
+  margin-bottom: var(--space-md);
+}
+
+.conversations-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: var(--space-lg);
+  min-height: 520px;
+}
+
+.conversations-list,
+.conversations-thread {
+  padding: var(--space-lg);
+}
+
+.conversations-item {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--on-surface);
+  margin-bottom: 4px;
+}
+
+.conversations-item span {
+  color: var(--brand-slate);
+  font-size: var(--text-caption);
+}
+
+.conversations-item.is-active,
+.conversations-item:hover {
+  background: #f1f5f9;
+}
+
+.conversations-empty {
+  color: var(--brand-slate);
+}
+
+.conversations-thread {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.conversations-thread__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-md);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--brand-border);
+}
+
+.conversations-thread__header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.conversations-thread__messages {
+  flex: 1;
+  display: grid;
+  gap: var(--space-sm);
+  align-content: start;
+  overflow-y: auto;
+  max-height: 380px;
+}
+
+.conversations-bubble {
+  max-width: 75%;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+}
+
+.conversations-bubble p {
+  margin: 0;
+}
+
+.conversations-bubble small {
+  display: block;
+  margin-top: 4px;
+  color: var(--brand-slate);
+  font-size: 11px;
+}
+
+.conversations-bubble--outbound {
+  justify-self: end;
+  background: rgba(37, 99, 235, 0.12);
+}
+
+.conversations-bubble--inbound {
+  justify-self: start;
+  background: #f1f5f9;
+}
+
+.conversations-composer {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--space-sm);
+}
+
+@media (max-width: 900px) {
+  .conversations-layout {
+    grid-template-columns: 1fr;
+  }
+}

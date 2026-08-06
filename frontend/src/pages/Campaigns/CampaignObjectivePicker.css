@@ -1,0 +1,83 @@
+.objective-page__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.objective-page__subtitle {
+  margin-top: 8px;
+  color: #434655;
+  max-width: 36rem;
+}
+
+.objective-grid {
+  display: grid;
+  gap: 14px;
+  max-width: 720px;
+}
+
+.objective-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    'radio title'
+    'radio subtitle'
+    'radio desc';
+  column-gap: 14px;
+  row-gap: 4px;
+  text-align: left;
+  padding: 18px 20px;
+  border: 1px solid #c3c6d7;
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.objective-card:hover {
+  border-color: #2563eb;
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.08);
+}
+
+.objective-card__radio {
+  grid-area: radio;
+  width: 18px;
+  height: 18px;
+  margin-top: 3px;
+  border: 2px solid #94a3b8;
+  border-radius: 50%;
+}
+
+.objective-card:hover .objective-card__radio {
+  border-color: #2563eb;
+}
+
+.objective-card__title {
+  grid-area: title;
+  font-size: 17px;
+  font-weight: 700;
+  color: #0b1c30;
+}
+
+.objective-card__subtitle {
+  grid-area: subtitle;
+  font-size: 13px;
+  font-weight: 600;
+  color: #2563eb;
+}
+
+.objective-card__desc {
+  grid-area: desc;
+  font-size: 14px;
+  line-height: 1.45;
+  color: #5b6475;
+  margin-top: 4px;
+}
+
+@media (max-width: 720px) {
+  .objective-page__header {
+    flex-direction: column;
+  }
+}

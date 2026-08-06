@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Login - Lead Capture</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-background": "#0b1c30",
+                    "surface-container": "#e5eeff",
+                    "inverse-surface": "#213145",
+                    "surface-bright": "#f8f9ff",
+                    "on-primary-fixed-variant": "#003ea8",
+                    "secondary-fixed-dim": "#bec6e0",
+                    "surface": "#f8f9ff",
+                    "on-secondary-container": "#5c647a",
+                    "inverse-primary": "#b4c5ff",
+                    "on-surface": "#0b1c30",
+                    "surface-variant": "#d3e4fe",
+                    "on-tertiary-container": "#ffede6",
+                    "on-primary-fixed": "#00174b",
+                    "on-tertiary": "#ffffff",
+                    "secondary-container": "#dae2fd",
+                    "surface-container-lowest": "#ffffff",
+                    "tertiary-fixed-dim": "#ffb596",
+                    "tertiary-fixed": "#ffdbcd",
+                    "surface-tint": "#0053db",
+                    "on-error-container": "#93000a",
+                    "on-secondary": "#ffffff",
+                    "background": "#f8f9ff",
+                    "surface-dim": "#cbdbf5",
+                    "inverse-on-surface": "#eaf1ff",
+                    "on-primary": "#ffffff",
+                    "tertiary-container": "#bc4800",
+                    "primary": "#004ac6",
+                    "on-error": "#ffffff",
+                    "outline-variant": "#c3c6d7",
+                    "primary-container": "#2563eb",
+                    "on-surface-variant": "#434655",
+                    "error": "#ba1a1a",
+                    "secondary-fixed": "#dae2fd",
+                    "outline": "#737686",
+                    "primary-fixed-dim": "#b4c5ff",
+                    "on-tertiary-fixed-variant": "#7d2d00",
+                    "surface-container-highest": "#d3e4fe",
+                    "surface-container-high": "#dce9ff",
+                    "on-primary-container": "#eeefff",
+                    "on-tertiary-fixed": "#360f00",
+                    "secondary": "#565e74",
+                    "primary-fixed": "#dbe1ff",
+                    "tertiary": "#943700",
+                    "on-secondary-fixed-variant": "#3f465c",
+                    "surface-container-low": "#eff4ff",
+                    "error-container": "#ffdad6",
+                    "on-secondary-fixed": "#131b2e",
+                    "brand-navy": "#0F172A",
+                    "brand-slate": "#475569",
+                    "brand-blue": "#2563EB",
+                    "brand-gray": "#F8FAFC",
+                    "brand-border": "#E2E8F0"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "sm": "6px",
+                    "md": "10px",
+                    "lg": "16px",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "md": "12px",
+                    "xs": "4px",
+                    "sm": "8px",
+                    "xl": "24px",
+                    "xxl": "32px",
+                    "xxxl": "48px",
+                    "lg": "16px"
+            },
+            "fontFamily": {
+                    "body-default": ["Inter"],
+                    "h2-header": ["Inter"],
+                    "label-medium": ["Inter"],
+                    "input-text": ["Inter"],
+                    "h1-display": ["Inter"],
+                    "caption": ["Inter"],
+                    "button-text": ["Inter"],
+                    "subtitle": ["Inter"]
+            },
+            "fontSize": {
+                    "body-default": ["15px", {"lineHeight": "22px", "fontWeight": "400"}],
+                    "h2-header": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "label-medium": ["14px", {"lineHeight": "20px", "fontWeight": "500"}],
+                    "input-text": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "h1-display": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "caption": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                    "button-text": ["15px", {"lineHeight": "20px", "fontWeight": "600"}],
+                    "subtitle": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        .login-shadow {
+            box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+        }
+        .data-lines-bg {
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(255, 255, 255, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 85% 30%, rgba(37, 99, 235, 0.15) 0%, transparent 50%);
+        }
+        .abstract-network {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.4;
+            pointer-events: none;
+            background: 
+                linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px) 0 0 / 40px 40px,
+                linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px) 0 0 / 40px 40px;
+        }
+        .abstract-network::after {
+            content: '';
+            position: absolute;
+            top: 20%;
+            left: 10%;
+            width: 80%;
+            height: 60%;
+            background: 
+                url('data:image/svg+xml;utf8,<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M10,50 L40,20 L70,60 L90,30" stroke="rgba(255,255,255,0.1)" stroke-width="2" fill="none"/><circle cx="10" cy="50" r="3" fill="rgba(255,255,255,0.2)"/><circle cx="40" cy="20" r="3" fill="rgba(255,255,255,0.2)"/><circle cx="70" cy="60" r="3" fill="rgba(255,255,255,0.2)"/><circle cx="90" cy="30" r="3" fill="rgba(255,255,255,0.2)"/></svg>') no-repeat center center;
+            background-size: contain;
+            opacity: 0.6;
+        }
+    </style>
+</head>
+<body class="bg-brand-gray text-on-background min-h-screen flex font-body-default text-body-default antialiased selection:bg-primary-container selection:text-white">
+<!-- Split Screen Container -->
+<div class="flex w-full min-h-screen">
+<!-- Left Side: Branding Area (Desktop Only) -->
+<div class="hidden lg:flex flex-col justify-between w-1/2 bg-brand-navy p-xxxl relative overflow-hidden data-lines-bg">
+<div class="abstract-network"></div>
+<!-- Logo -->
+<div class="z-10">
+<img alt="Lead Capture Logo" class="w-12 h-12 rounded-sm object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAzGP-my6yYJK61wGppd3kvhlwPlKLeIV3FUBzW4sSv_t-NSTrUGu-n6QdJhfqfs0LIsoD4puL4RXIRTNgiyvqlcQIyvMeb__XTGmveHGkXlSFcw0t6s-tMVlzWc35ZlZVIsgqsQBKuwctjgD7faR0feF1vPIZM1wNLCFjDuQ0ITaXv2OfFfa-4L7RcbtNhMZ3kzy8qeWAelDD1R0YJG5ZWqDYjkko6FVIQMHCZwxOE0wT7WBDUsd8"/>
+</div>
+<!-- Value Proposition -->
+<div class="z-10 max-w-lg mb-xxxl">
+<h1 class="font-h1-display text-h1-display text-white mb-lg">
+                    Transforme seus anúncios em oportunidades reais.
+                </h1>
+<p class="font-subtitle text-subtitle text-white/70">
+                    Conecte suas campanhas, capture leads e acompanhe seus clientes em um único lugar.
+                </p>
+</div>
+<div class="z-10">
+<!-- Empty div for flex alignment -->
+</div>
+</div>
+<!-- Right Side: Login Area -->
+<div class="w-full lg:w-1/2 flex items-center justify-center p-xl relative bg-brand-gray">
+<!-- Mobile Logo (Visible only on small screens) -->
+<div class="absolute top-xl left-xl lg:hidden">
+<img alt="Lead Capture Logo" class="w-10 h-10 rounded-sm object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAzGP-my6yYJK61wGppd3kvhlwPlKLeIV3FUBzW4sSv_t-NSTrUGu-n6QdJhfqfs0LIsoD4puL4RXIRTNgiyvqlcQIyvMeb__XTGmveHGkXlSFcw0t6s-tMVlzWc35ZlZVIsgqsQBKuwctjgD7faR0feF1vPIZM1wNLCFjDuQ0ITaXv2OfFfa-4L7RcbtNhMZ3kzy8qeWAelDD1R0YJG5ZWqDYjkko6FVIQMHCZwxOE0wT7WBDUsd8"/>
+</div>
+<!-- Login Card -->
+<div class="w-full max-w-[440px] bg-white rounded-lg login-shadow border border-brand-border p-xxxl">
+<!-- Header -->
+<div class="mb-xxl">
+<h2 class="font-h1-display text-[32px] font-bold text-brand-navy mb-sm leading-tight tracking-tight">
+                        Bem-vindo novamente
+                    </h2>
+<p class="font-subtitle text-[16px] text-brand-slate">
+                        Entre na sua conta para continuar
+                    </p>
+</div>
+<!-- Form -->
+<form class="space-y-lg">
+<!-- Email Field -->
+<div class="space-y-xs">
+<label class="block font-label-medium text-[14px] font-medium text-on-surface" for="email">Email</label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-md flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline text-[20px]">mail</span>
+</div>
+<input class="block w-full pl-[40px] pr-md py-sm h-[40px] rounded-md border-outline-variant bg-white text-input-text text-on-surface focus:ring-2 focus:ring-primary focus:border-primary transition-shadow" id="email" name="email" placeholder="Digite seu email" required="" type="email"/>
+</div>
+</div>
+<!-- Password Field -->
+<div class="space-y-xs">
+<label class="block font-label-medium text-[14px] font-medium text-on-surface" for="password">Senha</label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-md flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline text-[20px]">lock</span>
+</div>
+<input class="block w-full pl-[40px] pr-[40px] py-sm h-[40px] rounded-md border-outline-variant bg-white text-input-text text-on-surface focus:ring-2 focus:ring-primary focus:border-primary transition-shadow" id="password" name="password" placeholder="Digite sua senha" required="" type="password"/>
+<button aria-label="Toggle password visibility" class="absolute inset-y-0 right-0 pr-md flex items-center text-outline hover:text-on-surface transition-colors focus:outline-none" type="button">
+<span class="material-symbols-outlined text-[20px]">visibility</span>
+</button>
+</div>
+</div>
+<!-- Submit Button -->
+<div class="pt-sm">
+<button class="w-full h-[48px] bg-brand-blue hover:bg-primary-container text-white rounded-[8px] font-button-text text-[15px] font-semibold flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary" type="submit">
+                            Entrar
+                        </button>
+</div>
+</form>
+<!-- Footer Links -->
+<div class="mt-xl text-center">
+<a class="font-label-medium text-[14px] font-medium text-brand-blue hover:text-on-primary-fixed-variant transition-colors" href="#">
+                        Esqueceu sua senha?
+                    </a>
+</div>
+</div>
+</div>
+</div>
+</body></html>
