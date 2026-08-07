@@ -82,68 +82,38 @@ function rankWhatsappAccount(account) {
 }
 
 /**
- * Escolhe o remetente WhatsApp da empresa.
- * Prefere número BR real com phone_number_id; evita +1 555 (sandbox).
+ * Lista candidatos de remetente WhatsApp (preferido primeiro).
+ * Evita +1 555 (sandbox) quando há número real.
  */
-async function resolveWhatsappSender(companyId, accessToken) {
+async function listWhatsappSenderCandidates(
+  companyId,
+  preferredPhoneNumberId = null
+) {
   const waAccounts = await metaWhatsappRepository.findByCompanyId(companyId);
-  if (!waAccounts.length) return null;
+  if (!waAccounts.length) return [];
 
-  const ranked = [...waAccounts].sort(
-    (a, b) => rankWhatsappAccount(a) - rankWhatsappAccount(b)
-  );
+  const ranked = [...waAccounts]
+    .filter((account) => account.phone_number_id)
+    .sort((a, b) => rankWhatsappAccount(a) - rankWhatsappAccount(b));
 
-  const withStoredId = ranked.find(
-    (account) =>
-      account.phone_number_id && !isMetaTestWhatsappNumber(account.phone_number)
-  );
-  if (withStoredId?.phone_number_id) {
-    return {
-      phoneNumberId: String(withStoredId.phone_number_id),
-      account: withStoredId,
-    };
-  }
-
-  for (const account of ranked) {
-    if (!account.business_account_id) continue;
-    if (isMetaTestWhatsappNumber(account.phone_number)) continue;
-    try {
-      const phoneNumberId = await whatsappClient.resolvePhoneNumberId(
-        account.business_account_id,
-        accessToken
-      );
-      if (!phoneNumberId) continue;
-
-      await metaWhatsappRepository.upsert({
-        companyId,
-        businessAccountId: String(account.business_account_id),
-        phoneNumber: account.phone_number,
-        phoneNumberId: String(phoneNumberId),
-      });
-
-      return {
-        phoneNumberId: String(phoneNumberId),
-        account,
-      };
-    } catch (error) {
-      logger.error('Falha ao resolver phone_number_id WhatsApp', {
-        companyId,
-        wabaId: account.business_account_id,
-        detail: error.message,
-      });
+  if (preferredPhoneNumberId) {
+    const preferred = ranked.find(
+      (account) =>
+        String(account.phone_number_id) === String(preferredPhoneNumberId)
+    );
+    if (preferred) {
+      return [
+        preferred,
+        ...ranked.filter((account) => account.id !== preferred.id),
+      ];
     }
   }
 
-  // Fallback: sandbox só se não houver número real
-  const testAccount = ranked.find((account) => account.phone_number_id);
-  if (testAccount?.phone_number_id) {
-    return {
-      phoneNumberId: String(testAccount.phone_number_id),
-      account: testAccount,
-    };
-  }
-
-  return null;
+  const real = ranked.filter(
+    (account) => !isMetaTestWhatsappNumber(account.phone_number)
+  );
+  if (real.length) return real;
+  return ranked;
 }
 
 function extractInboundText(message) {
@@ -360,9 +330,11 @@ export const messagingService = {
           storedContent = content || `[template:${templateName}]`;
         }
       } else {
-        const sender = await resolveWhatsappSender(companyId, accessToken);
-        const phoneNumberId = sender?.phoneNumberId;
-        if (!phoneNumberId) {
+        const candidates = await listWhatsappSenderCandidates(
+          companyId,
+          conversation.meta_phone_number_id || null
+        );
+        if (!candidates.length) {
           throw new AppError(
             'phone_number_id WhatsApp não encontrado. Sincronize os ativos em Conexão Meta.',
             {
@@ -372,26 +344,58 @@ export const messagingService = {
           );
         }
 
-        if (templateName) {
-          const result = await whatsappClient.sendTemplate({
-            phoneNumberId,
-            to: phone,
-            templateName,
-            languageCode: templateLanguage || 'pt_BR',
-            components: buildTemplateComponents(lead, templateBodyParams),
-            accessToken,
-          });
-          externalMessageId = result?.messages?.[0]?.id || null;
-          storedContent = content || `[template:${templateName}]`;
-        } else {
-          const result = await whatsappClient.sendText({
-            phoneNumberId,
-            to: phone,
-            body: content,
-            accessToken,
-          });
-          externalMessageId = result?.messages?.[0]?.id || null;
+        let lastError = null;
+        for (const candidate of candidates) {
+          const phoneNumberId = String(candidate.phone_number_id);
+          try {
+            if (templateName) {
+              const result = await whatsappClient.sendTemplate({
+                phoneNumberId,
+                to: phone,
+                templateName,
+                languageCode: templateLanguage || 'pt_BR',
+                components: buildTemplateComponents(lead, templateBodyParams),
+                accessToken,
+              });
+              externalMessageId = result?.messages?.[0]?.id || null;
+              storedContent = content || `[template:${templateName}]`;
+            } else {
+              const result = await whatsappClient.sendText({
+                phoneNumberId,
+                to: phone,
+                body: content,
+                accessToken,
+              });
+              externalMessageId = result?.messages?.[0]?.id || null;
+            }
+
+            if (
+              String(conversation.meta_phone_number_id || '') !== phoneNumberId
+            ) {
+              await conversationRepository.updateMetaPhoneNumberId(
+                conversation.id,
+                companyId,
+                phoneNumberId
+              );
+            }
+            lastError = null;
+            break;
+          } catch (error) {
+            lastError = error;
+            // 133010: número não registrado na Cloud API — tenta outro phone_number_id
+            if (error?.code === 'WHATSAPP_ACCOUNT_NOT_REGISTERED') {
+              logger.warn('Remetente WhatsApp não registrado, tentando outro', {
+                companyId,
+                conversationId: conversation.id,
+                phoneNumberId,
+              });
+              continue;
+            }
+            throw error;
+          }
         }
+
+        if (lastError) throw lastError;
       }
     } else if (conversation.channel === ConversationChannel.INSTAGRAM) {
       const recipientId = conversation.external_user_id;
@@ -564,6 +568,18 @@ export const messagingService = {
         });
       }
 
+      if (
+        phoneNumberId &&
+        String(conversation.meta_phone_number_id || '') !== phoneNumberId
+      ) {
+        await conversationRepository.updateMetaPhoneNumberId(
+          conversation.id,
+          companyId,
+          phoneNumberId
+        );
+        conversation.meta_phone_number_id = phoneNumberId;
+      }
+
       await this.saveMessage({
         companyId,
         conversationId: conversation.id,
@@ -583,6 +599,7 @@ export const messagingService = {
         companyId,
         conversationId: conversation.id,
         externalMessageId,
+        phoneNumberId,
       });
     }
 

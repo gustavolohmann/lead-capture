@@ -116,4 +116,11 @@ export const conversationRepository = {
       externalUserId,
     });
   },
+
+  async updateMetaPhoneNumberId(id, companyId, metaPhoneNumberId) {
+    if (!id || !companyId || !metaPhoneNumberId) return;
+    await db('conversations')
+      .where({ id, company_id: companyId })
+      .update({ meta_phone_number_id: String(metaPhoneNumberId) });
+  },
 };

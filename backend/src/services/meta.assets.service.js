@@ -5,6 +5,7 @@ import { metaPageRepository } from '../repositories/meta.page.repository.js';
 import { metaAdAccountRepository } from '../repositories/meta.adAccount.repository.js';
 import { metaInstagramRepository } from '../repositories/meta.instagram.repository.js';
 import { metaWhatsappRepository } from '../repositories/meta.whatsapp.repository.js';
+import { whatsappClient } from './whatsapp.client.js';
 import { decrypt, encrypt } from '../utils/encryption.js';
 import { AppError } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
@@ -248,6 +249,31 @@ export const metaAssetsService = {
               code: error.code || null,
               detail: error.message,
             });
+          }
+
+          // Tenta registrar o número na Cloud API (necessário para outbound)
+          if (phoneInfo.phoneNumberId) {
+            try {
+              await whatsappClient.registerPhoneNumber({
+                phoneNumberId: phoneInfo.phoneNumberId,
+                pin: process.env.WHATSAPP_REGISTER_PIN || '000000',
+                accessToken: resolved.accessToken,
+              });
+              logger.info('Número WhatsApp registrado na Cloud API', {
+                companyId,
+                phoneNumber: phoneInfo.phoneNumber,
+                phoneNumberId: phoneInfo.phoneNumberId,
+              });
+            } catch (error) {
+              // Já registrado / sem permissão / PIN inválido — não bloqueia sync
+              logger.warn('Registro Cloud API WhatsApp não aplicado', {
+                companyId,
+                phoneNumber: phoneInfo.phoneNumber,
+                phoneNumberId: phoneInfo.phoneNumberId,
+                code: error.code || null,
+                detail: error.message,
+              });
+            }
           }
 
           seen.add(String(waba.id));

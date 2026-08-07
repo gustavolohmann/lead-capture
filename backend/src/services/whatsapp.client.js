@@ -46,6 +46,16 @@ function mapError(error) {
     );
   }
 
+  if (graph?.code === 133010) {
+    return new AppError(
+      'Número WhatsApp não registrado na Cloud API (133010). Sincronize os ativos ou registre o número no WhatsApp Manager.',
+      {
+        statusCode: 400,
+        code: 'WHATSAPP_ACCOUNT_NOT_REGISTERED',
+      }
+    );
+  }
+
   return new AppError(graph?.message || 'Erro na WhatsApp Cloud API', {
     statusCode: 502,
     code: 'WHATSAPP_API_ERROR',
@@ -96,6 +106,16 @@ export const whatsappClient = {
     });
     const phones = data?.phone_numbers?.data || [];
     return phones[0]?.id || null;
+  },
+
+  async registerPhoneNumber({ phoneNumberId, pin = '000000', accessToken }) {
+    return request('POST', `/${phoneNumberId}/register`, {
+      accessToken,
+      data: {
+        messaging_product: 'whatsapp',
+        pin: String(pin || '000000'),
+      },
+    });
   },
 
   async sendText({ phoneNumberId, to, body, accessToken }) {
