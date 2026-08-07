@@ -86,8 +86,12 @@ async function request(method, path, { accessToken, params, data } = {}) {
 }
 
 export const instagramClient = {
-  async sendText({ igUserId, recipientId, text, accessToken }) {
-    return request('POST', `/${igUserId}/messages`, {
+  /**
+   * Messenger API for Instagram: POST /{page-id|me}/messages
+   * @see https://developers.facebook.com/docs/messenger-platform/instagram/features/send-message/
+   */
+  async sendText({ pageId = 'me', recipientId, text, accessToken }) {
+    return request('POST', `/${pageId || 'me'}/messages`, {
       accessToken,
       data: {
         recipient: { id: recipientId },

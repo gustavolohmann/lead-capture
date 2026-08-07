@@ -34,19 +34,28 @@ async function getAccessToken(companyId) {
   return decrypt(connection.access_token_encrypted);
 }
 
-/** Instagram Messaging API usa Page Access Token (não token IGAAA do Instagram Login). */
-async function resolveInstagramPageToken(companyId, fallbackUserToken) {
+/**
+ * Instagram Messaging (Messenger API for IG):
+ * POST /{PAGE_ID}/messages + Page Access Token.
+ * Não usar /{instagram_user_id}/messages (erro #3).
+ */
+async function resolveInstagramPageSender(companyId, fallbackUserToken) {
   const pages = await metaPageRepository.findByCompanyId(companyId);
   for (const page of pages) {
     if (!page.access_token_encrypted) continue;
     try {
       const pageToken = decrypt(page.access_token_encrypted);
-      if (pageToken) return pageToken;
+      if (pageToken) {
+        return {
+          pageId: String(page.page_id),
+          pageToken,
+        };
+      }
     } catch {
       // tenta próxima página
     }
   }
-  return fallbackUserToken;
+  return { pageId: 'me', pageToken: fallbackUserToken };
 }
 
 function normalizePhone(phone) {
@@ -343,12 +352,12 @@ export const messagingService = {
         });
       }
 
-      const pageToken = await resolveInstagramPageToken(
+      const { pageId, pageToken } = await resolveInstagramPageSender(
         companyId,
         accessToken
       );
       const result = await instagramClient.sendText({
-        igUserId: igAccounts[0].instagram_id,
+        pageId,
         recipientId,
         text: content,
         accessToken: pageToken,
