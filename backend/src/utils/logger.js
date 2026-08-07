@@ -11,12 +11,14 @@ export const logger = {
   },
 
   error(message, meta = {}) {
+    const { message: detailMessage, ...rest } = meta || {};
     console.error(
       JSON.stringify({
         level: 'error',
         message,
         timestamp: new Date().toISOString(),
-        ...meta,
+        ...(detailMessage != null ? { detail: detailMessage } : {}),
+        ...rest,
       })
     );
   },

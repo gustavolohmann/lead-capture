@@ -45,6 +45,18 @@ function mapMarketingError(error) {
     });
   }
 
+  // 1885183: criativo criado por app em Development — precisa estar Live/Public
+  if (graph?.error_subcode === 1885183) {
+    return new AppError(
+      detail ||
+        'O app Meta ainda está em modo desenvolvimento. Publique o app (Live) e tente novamente.',
+      {
+        statusCode: 400,
+        code: 'META_APP_NOT_LIVE',
+      }
+    );
+  }
+
   if (graph?.code === 100 || graph?.error_subcode === 33) {
     const isFormName =
       /nome do formulário já existe|form.*already exists|duplicate/i.test(
