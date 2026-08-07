@@ -1,6 +1,7 @@
 import { metaConnectionRepository } from '../repositories/meta.connection.repository.js';
 import { metaWhatsappRepository } from '../repositories/meta.whatsapp.repository.js';
 import { metaInstagramRepository } from '../repositories/meta.instagram.repository.js';
+import { metaPageRepository } from '../repositories/meta.page.repository.js';
 import { conversationRepository } from '../repositories/conversation.repository.js';
 import { messageRepository } from '../repositories/message.repository.js';
 import { leadRepository } from '../repositories/lead.repository.js';
@@ -11,7 +12,6 @@ import { decrypt } from '../utils/encryption.js';
 import { AppError } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
 import { env } from '../config/env.js';
-import { getInstagramAccessToken } from './meta.instagram.config.js';
 import { ConversationChannel } from '../models/conversation.model.js';
 import {
   MessageDirection,
@@ -32,6 +32,21 @@ async function getAccessToken(companyId) {
     });
   }
   return decrypt(connection.access_token_encrypted);
+}
+
+/** Instagram Messaging API usa Page Access Token (não token IGAAA do Instagram Login). */
+async function resolveInstagramPageToken(companyId, fallbackUserToken) {
+  const pages = await metaPageRepository.findByCompanyId(companyId);
+  for (const page of pages) {
+    if (!page.access_token_encrypted) continue;
+    try {
+      const pageToken = decrypt(page.access_token_encrypted);
+      if (pageToken) return pageToken;
+    } catch {
+      // tenta próxima página
+    }
+  }
+  return fallbackUserToken;
 }
 
 function normalizePhone(phone) {
@@ -328,12 +343,15 @@ export const messagingService = {
         });
       }
 
-      const igAccessToken = getInstagramAccessToken(accessToken);
+      const pageToken = await resolveInstagramPageToken(
+        companyId,
+        accessToken
+      );
       const result = await instagramClient.sendText({
         igUserId: igAccounts[0].instagram_id,
         recipientId,
         text: content,
-        accessToken: igAccessToken,
+        accessToken: pageToken,
       });
       externalMessageId = result?.message_id || result?.id || null;
     } else {

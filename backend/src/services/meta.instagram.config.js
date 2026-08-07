@@ -5,28 +5,7 @@ import { AppError } from '../utils/errors.js';
 export function getInstagramAppConfig() {
   const appId = String(env.META_INSTAGRAM_APP_ID || '').trim();
   const appSecret = String(env.META_INSTAGRAM_APP_SECRET || '').trim();
-  const accessToken = String(env.META_INSTAGRAM_ACCESS_TOKEN || '').trim();
-  return { appId, appSecret, accessToken };
-}
-
-/** Token IG do env (prioridade) para mensagens/criativos Instagram. */
-export function getInstagramAccessToken(fallbackToken = null) {
-  const { accessToken } = getInstagramAppConfig();
-  return accessToken || fallbackToken || null;
-}
-
-export function requireInstagramAccessToken(fallbackToken = null) {
-  const token = getInstagramAccessToken(fallbackToken);
-  if (!token) {
-    throw new AppError(
-      'META_INSTAGRAM_ACCESS_TOKEN não configurado e sem token Meta de fallback.',
-      {
-        statusCode: 500,
-        code: 'INSTAGRAM_TOKEN_MISSING',
-      }
-    );
-  }
-  return token;
+  return { appId, appSecret };
 }
 
 export function requireInstagramAppConfig() {

@@ -2,11 +2,7 @@ import axios from 'axios';
 import { env } from '../config/env.js';
 import { logger } from '../utils/logger.js';
 import { AppError } from '../utils/errors.js';
-import {
-  buildFacebookAppSecretProof,
-  buildInstagramAppSecretProof,
-  getInstagramAppConfig,
-} from './meta.instagram.config.js';
+import { buildFacebookAppSecretProof } from './meta.instagram.config.js';
 
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 400;
@@ -53,26 +49,12 @@ async function request(method, path, { accessToken, params, data } = {}) {
     timeout: 20000,
   });
 
-  const { appId } = getInstagramAppConfig();
+  // Page/User token do app Facebook — sem app_id do produto Instagram
   const requestParams = {
     ...(params || {}),
     access_token: accessToken,
+    appsecret_proof: buildFacebookAppSecretProof(accessToken),
   };
-  if (appId) {
-    requestParams.app_id = appId;
-  }
-  // Token vem do Login Facebook; proof com secret IG só se configurado e válido.
-  // Preferimos Facebook secret (emissor do token); IG secret como fallback.
-  try {
-    requestParams.appsecret_proof = buildFacebookAppSecretProof(accessToken);
-  } catch {
-    try {
-      requestParams.appsecret_proof =
-        buildInstagramAppSecretProof(accessToken);
-    } catch {
-      // segue só com access_token
-    }
-  }
 
   let lastError;
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt += 1) {
@@ -93,6 +75,7 @@ async function request(method, path, { accessToken, params, data } = {}) {
         attempt,
         status: error.response?.status || null,
         code: error.response?.data?.error?.code || error.code || null,
+        detail: error.response?.data?.error?.message || null,
         retryable,
       });
       if (!retryable || attempt === MAX_RETRIES) throw mapError(error);
