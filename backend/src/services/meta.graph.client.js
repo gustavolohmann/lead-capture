@@ -163,6 +163,19 @@ export const metaGraphClient = {
     });
   },
 
+  /**
+   * Assina a Página no app para receber webhooks leadgen.
+   * Sem isso, formulário preenchido não chega no callback.
+   */
+  async subscribePageApps(pageId, pageAccessToken, subscribedFields = ['leadgen']) {
+    return request('POST', `/${pageId}/subscribed_apps`, {
+      params: {
+        access_token: pageAccessToken,
+        subscribed_fields: subscribedFields.join(','),
+      },
+    });
+  },
+
   async getOwnedWhatsappAccounts(businessId, accessToken) {
     return request('GET', `/${businessId}/owned_whatsapp_business_accounts`, {
       params: {

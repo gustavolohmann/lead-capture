@@ -106,6 +106,29 @@ export const metaAssetsService = {
         name: page.name,
         accessTokenEncrypted: pageTokenEncrypted,
       });
+
+      if (page.access_token) {
+        try {
+          await metaGraphClient.subscribePageApps(
+            String(page.id),
+            page.access_token,
+            ['leadgen']
+          );
+          logger.info('Página assinada para webhook leadgen', {
+            companyId,
+            pageId: String(page.id),
+            pageName: page.name,
+          });
+        } catch (error) {
+          logger.error('Falha ao assinar Página para leadgen', {
+            companyId,
+            pageId: String(page.id),
+            code: error.code || null,
+            detail: error.message,
+          });
+        }
+      }
+
       count += 1;
     }
 
