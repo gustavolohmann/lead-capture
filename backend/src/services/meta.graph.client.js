@@ -185,6 +185,15 @@ export const metaGraphClient = {
     });
   },
 
+  async getWhatsappAccountPhones(wabaId, accessToken) {
+    return request('GET', `/${wabaId}`, {
+      params: {
+        access_token: accessToken,
+        fields: 'id,name,phone_numbers{id,display_phone_number,verified_name}',
+      },
+    });
+  },
+
   async getLead(leadgenId, pageAccessToken) {
     return request('GET', `/${leadgenId}`, {
       params: {

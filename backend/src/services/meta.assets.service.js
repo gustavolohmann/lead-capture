@@ -60,11 +60,26 @@ function extractWhatsappPhoneInfo(waba) {
   if (!Array.isArray(phones) || phones.length === 0) {
     return { phoneNumber: null, phoneNumberId: null };
   }
-  const first = phones[0];
+
+  const scored = [...phones].sort((a, b) => {
+    const rank = (phone) => {
+      const display = String(
+        phone?.display_phone_number || phone?.phone_number || ''
+      );
+      const digits = display.replace(/\D/g, '');
+      if (digits.startsWith('1555') || digits.startsWith('555')) return 90;
+      if (digits.startsWith('55')) return 1;
+      if (digits.length >= 10) return 10;
+      return 50;
+    };
+    return rank(a) - rank(b);
+  });
+
+  const chosen = scored[0];
   return {
     phoneNumber:
-      first.display_phone_number || first.phone_number || null,
-    phoneNumberId: first.id ? String(first.id) : null,
+      chosen.display_phone_number || chosen.phone_number || null,
+    phoneNumberId: chosen.id ? String(chosen.id) : null,
   };
 }
 
@@ -191,7 +206,21 @@ export const metaAssetsService = {
         for (const waba of accounts) {
           if (!waba?.id || seen.has(String(waba.id))) continue;
 
-          const phoneInfo = extractWhatsappPhoneInfo(waba);
+          let phoneInfo = extractWhatsappPhoneInfo(waba);
+
+          // Lista do Business às vezes vem sem phone_numbers aninhados
+          if (!phoneInfo.phoneNumberId) {
+            try {
+              const detailed = await metaGraphClient.getWhatsappAccountPhones(
+                String(waba.id),
+                resolved.accessToken
+              );
+              phoneInfo = extractWhatsappPhoneInfo(detailed || waba);
+            } catch {
+              // mantém phoneInfo parcial
+            }
+          }
+
           await metaWhatsappRepository.upsert({
             companyId,
             businessAccountId: String(waba.id),

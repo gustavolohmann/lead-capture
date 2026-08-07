@@ -453,17 +453,45 @@ export const messagingService = {
     const phoneNumberId = value?.metadata?.phone_number_id
       ? String(value.metadata.phone_number_id)
       : null;
+    const displayPhone = value?.metadata?.display_phone_number
+      ? String(value.metadata.display_phone_number)
+      : null;
+
+    // Payload sintético do botão "Testar" no painel da Meta
+    if (
+      phoneNumberId === '123456123' ||
+      wabaId === '0' ||
+      displayPhone === '123456123'
+    ) {
+      logger.info('Webhook WhatsApp de teste da Meta ignorado', {
+        phoneNumberId,
+        wabaId,
+        displayPhone,
+      });
+      return { processed: 0, testPayload: true };
+    }
 
     let waAccount = phoneNumberId
       ? await metaWhatsappRepository.findByPhoneNumberId(phoneNumberId)
       : null;
-    if (!waAccount && wabaId) {
+    if (!waAccount && wabaId && wabaId !== '0') {
       waAccount = await metaWhatsappRepository.findByBusinessAccountId(wabaId);
+    }
+    if (!waAccount && displayPhone) {
+      waAccount = await metaWhatsappRepository.findByPhoneDigits(displayPhone);
+      if (waAccount && phoneNumberId && !waAccount.phone_number_id) {
+        await metaWhatsappRepository.updatePhoneNumberId(
+          waAccount.id,
+          phoneNumberId
+        );
+        waAccount.phone_number_id = phoneNumberId;
+      }
     }
     if (!waAccount) {
       logger.info('Webhook WhatsApp ignorado: conta não mapeada', {
         phoneNumberId,
         wabaId,
+        displayPhone,
       });
       return { processed: 0 };
     }
