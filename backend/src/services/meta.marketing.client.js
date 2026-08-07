@@ -112,14 +112,17 @@ async function request(method, path, options = {}) {
       lastError = error;
 
       const retryable = isRetryable(error);
+      const graphError = error.response?.data?.error;
       logger.error('Erro Marketing API', {
         method,
         path,
         attempt,
         status: error.response?.status || null,
-        code: error.response?.data?.error?.code || error.code || null,
-        subcode: error.response?.data?.error?.error_subcode || null,
-        message: error.response?.data?.error?.message || null,
+        code: graphError?.code || error.code || null,
+        subcode: graphError?.error_subcode || null,
+        message: graphError?.message || null,
+        userTitle: graphError?.error_user_title || null,
+        userMsg: graphError?.error_user_msg || null,
         retryable,
       });
 

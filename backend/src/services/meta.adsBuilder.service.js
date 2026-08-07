@@ -3,6 +3,7 @@ import { metaMarketingClient } from './meta.marketing.client.js';
 import { metaConnectionRepository } from '../repositories/meta.connection.repository.js';
 import { metaPageRepository } from '../repositories/meta.page.repository.js';
 import { metaAdAccountRepository } from '../repositories/meta.adAccount.repository.js';
+import { metaInstagramRepository } from '../repositories/meta.instagram.repository.js';
 import { leadFormRepository } from '../repositories/leadForm.repository.js';
 import { adSetRepository } from '../repositories/adSet.repository.js';
 import { adCreativeRepository } from '../repositories/adCreative.repository.js';
@@ -378,6 +379,7 @@ async function createCreativeAndPersist({
   ctaValue,
   defaultTitle,
   defaultBody,
+  instagramActorId = null,
 }) {
   const imageBase64 = stripDataUrl(
     creativeInput.imageBase64 || creativeInput.image
@@ -418,20 +420,44 @@ async function createCreativeAndPersist({
     callToAction.value = ctaValue;
   }
 
+  const isInstagramDirect =
+    Boolean(instagramActorId) ||
+    ctaType === 'INSTAGRAM_MESSAGE' ||
+    ctaValue?.app_destination === 'INSTAGRAM_DIRECT';
+
+  const linkData = {
+    image_hash: imageHash,
+    message: body,
+    call_to_action: callToAction,
+  };
+
+  // Click-to-Instagram não usa link de página; CTA aponta para o Direct.
+  if (!isInstagramDirect) {
+    linkData.link = linkUrl;
+    linkData.name = title;
+    const description = String(creativeInput.description || '').trim();
+    if (description) linkData.description = description;
+  } else {
+    linkData.link = linkUrl || 'https://www.instagram.com/';
+    linkData.page_welcome_message =
+      creativeInput.pageWelcomeMessage ||
+      body ||
+      'Olá! Como posso ajudar?';
+  }
+
+  const objectStorySpec = {
+    page_id: String(pageId),
+    link_data: linkData,
+  };
+
+  if (instagramActorId) {
+    objectStorySpec.instagram_user_id = String(instagramActorId);
+    objectStorySpec.instagram_actor_id = String(instagramActorId);
+  }
+
   const creativePayload = {
     name: creativeName,
-    object_story_spec: {
-      page_id: String(pageId),
-      link_data: {
-        image_hash: imageHash,
-        link: linkUrl,
-        message: body,
-        name: title,
-        description:
-          String(creativeInput.description || '').trim() || undefined,
-        call_to_action: callToAction,
-      },
-    },
+    object_story_spec: objectStorySpec,
   };
 
   const metaCreative = await metaMarketingClient.createAdCreative(
@@ -441,6 +467,11 @@ async function createCreativeAndPersist({
   );
 
   if (!metaCreative?.id) {
+    logger.error('Criativo Meta sem id', {
+      companyId,
+      adAccountId,
+      response: metaCreative || null,
+    });
     throw new AppError('Falha ao criar criativo na Meta', {
       statusCode: 502,
       code: 'META_MARKETING_ERROR',
@@ -484,6 +515,13 @@ async function createAdAndPersist({
   });
 
   if (!metaAd?.id) {
+    logger.error('Anúncio Meta sem id', {
+      companyId,
+      adAccountId,
+      metaAdSetId,
+      metaCreativeId,
+      response: metaAd || null,
+    });
     throw new AppError('Falha ao criar anúncio na Meta', {
       statusCode: 502,
       code: 'META_MARKETING_ERROR',
@@ -774,6 +812,24 @@ export const metaAdsBuilderService = {
       }
     }
 
+    let instagramActorId = null;
+    if (channels.includes('INSTAGRAM')) {
+      const igAccounts =
+        await metaInstagramRepository.findByCompanyId(companyId);
+      instagramActorId = igAccounts[0]?.instagram_id
+        ? String(igAccounts[0].instagram_id)
+        : null;
+      if (!instagramActorId) {
+        throw new AppError(
+          'Nenhuma conta Instagram sincronizada. Sincronize em Conexão Meta.',
+          {
+            statusCode: 400,
+            code: 'INSTAGRAM_ACCOUNT_MISSING',
+          }
+        );
+      }
+    }
+
     const adAccountId = await assertAdAccount(companyId, input.adAccountId);
     const accessToken = await getUserToken(companyId);
     const { page } = await getPageWithToken(companyId, input.pageId);
@@ -839,7 +895,10 @@ export const metaAdsBuilderService = {
       for (const channel of channels) {
         const promotedObject = { page_id: String(page.page_id) };
         let destinationType = 'INSTAGRAM_DIRECT';
-        let ctaType = 'MESSAGE_PAGE';
+        let ctaType = 'INSTAGRAM_MESSAGE';
+        let ctaValue = { app_destination: 'INSTAGRAM_DIRECT' };
+        let linkUrl = 'https://www.instagram.com/';
+        let channelInstagramId = null;
 
         if (channel === 'WHATSAPP') {
           promotedObject.whatsapp_phone_number = String(
@@ -847,6 +906,12 @@ export const metaAdsBuilderService = {
           ).trim();
           destinationType = 'WHATSAPP';
           ctaType = 'WHATSAPP_MESSAGE';
+          ctaValue = {
+            whatsapp_phone_number: String(input.whatsappPhoneNumber).trim(),
+          };
+          linkUrl = `https://www.facebook.com/${page.page_id}`;
+        } else {
+          channelInstagramId = instagramActorId;
         }
 
         const adSetName = `${baseAdSetName} · ${channel}`;
@@ -893,15 +958,9 @@ export const metaAdsBuilderService = {
           campaignName: `${campaignName} ${channel}`,
           creativeInput,
           ctaType: creativeInput.cta || creativeInput.ctaType || ctaType,
-          linkUrl: `https://www.facebook.com/${page.page_id}`,
-          ctaValue:
-            channel === 'WHATSAPP'
-              ? {
-                  whatsapp_phone_number: String(
-                    input.whatsappPhoneNumber
-                  ).trim(),
-                }
-              : undefined,
+          linkUrl,
+          ctaValue,
+          instagramActorId: channelInstagramId,
           defaultTitle: 'Fale conosco',
           defaultBody: 'Envie uma mensagem e tire suas dúvidas.',
         });
@@ -935,6 +994,13 @@ export const metaAdsBuilderService = {
         channels,
       };
     } catch (error) {
+      logger.error('Ads Builder Messages falhou', {
+        companyId,
+        channels,
+        detail: error?.message || null,
+        code: error?.code || null,
+      });
+
       // Evita campanhas órfãs (Meta + local) quando o ad set/WhatsApp falha depois
       if (campaign?.id) {
         try {
