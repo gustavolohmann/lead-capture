@@ -4,6 +4,10 @@ import { metaConnectionRepository } from '../repositories/meta.connection.reposi
 import { metaPageRepository } from '../repositories/meta.page.repository.js';
 import { metaAdAccountRepository } from '../repositories/meta.adAccount.repository.js';
 import { metaInstagramRepository } from '../repositories/meta.instagram.repository.js';
+import {
+  buildFacebookAppSecretProof,
+  requireInstagramAppConfig,
+} from './meta.instagram.config.js';
 import { leadFormRepository } from '../repositories/leadForm.repository.js';
 import { adSetRepository } from '../repositories/adSet.repository.js';
 import { adCreativeRepository } from '../repositories/adCreative.repository.js';
@@ -380,6 +384,8 @@ async function createCreativeAndPersist({
   defaultTitle,
   defaultBody,
   instagramActorId = null,
+  instagramAppId = null,
+  instagramAppSecretProof = null,
 }) {
   const imageBase64 = stripDataUrl(
     creativeInput.imageBase64 || creativeInput.image
@@ -463,7 +469,11 @@ async function createCreativeAndPersist({
   const metaCreative = await metaMarketingClient.createAdCreative(
     adAccountId,
     accessToken,
-    creativePayload
+    creativePayload,
+    {
+      appId: instagramAppId || undefined,
+      appSecretProof: instagramAppSecretProof || undefined,
+    }
   );
 
   if (!metaCreative?.id) {
@@ -503,16 +513,26 @@ async function createAdAndPersist({
   metaCreativeId,
   campaignName,
   creativeInput,
+  instagramAppId = null,
+  instagramAppSecretProof = null,
 }) {
   const adName = String(
     creativeInput.adName || `Anúncio ${campaignName}`
   ).trim();
-  const metaAd = await metaMarketingClient.createAd(adAccountId, accessToken, {
-    name: adName,
-    adset_id: metaAdSetId,
-    creative: { creative_id: metaCreativeId },
-    status: 'PAUSED',
-  });
+  const metaAd = await metaMarketingClient.createAd(
+    adAccountId,
+    accessToken,
+    {
+      name: adName,
+      adset_id: metaAdSetId,
+      creative: { creative_id: metaCreativeId },
+      status: 'PAUSED',
+    },
+    {
+      appId: instagramAppId || undefined,
+      appSecretProof: instagramAppSecretProof || undefined,
+    }
+  );
 
   if (!metaAd?.id) {
     logger.error('Anúncio Meta sem id', {
@@ -813,7 +833,12 @@ export const metaAdsBuilderService = {
     }
 
     let instagramActorId = null;
+    let instagramAppId = null;
+    let instagramAppSecretProof = null;
     if (channels.includes('INSTAGRAM')) {
+      const { appId } = requireInstagramAppConfig();
+      instagramAppId = appId;
+
       const igAccounts =
         await metaInstagramRepository.findByCompanyId(companyId);
       instagramActorId = igAccounts[0]?.instagram_id
@@ -833,6 +858,16 @@ export const metaAdsBuilderService = {
     const adAccountId = await assertAdAccount(companyId, input.adAccountId);
     const accessToken = await getUserToken(companyId);
     const { page } = await getPageWithToken(companyId, input.pageId);
+
+    if (channels.includes('INSTAGRAM')) {
+      // app_id = App Instagram; proof = secret do app Facebook (emissor do token OAuth)
+      instagramAppSecretProof = buildFacebookAppSecretProof(accessToken);
+      logger.info('Ads Builder: Instagram app configurado', {
+        companyId,
+        instagramAppId,
+        instagramActorId,
+      });
+    }
 
     const campaignName = String(input.name || '').trim();
     if (campaignName.length < 3) {
@@ -961,6 +996,10 @@ export const metaAdsBuilderService = {
           linkUrl,
           ctaValue,
           instagramActorId: channelInstagramId,
+          instagramAppId:
+            channel === 'INSTAGRAM' ? instagramAppId : null,
+          instagramAppSecretProof:
+            channel === 'INSTAGRAM' ? instagramAppSecretProof : null,
           defaultTitle: 'Fale conosco',
           defaultBody: 'Envie uma mensagem e tire suas dúvidas.',
         });
@@ -975,6 +1014,10 @@ export const metaAdsBuilderService = {
           metaCreativeId: metaCreative.id,
           campaignName: `${campaignName} ${channel}`,
           creativeInput,
+          instagramAppId:
+            channel === 'INSTAGRAM' ? instagramAppId : null,
+          instagramAppSecretProof:
+            channel === 'INSTAGRAM' ? instagramAppSecretProof : null,
         });
 
         adSets.push(toPublicAdSet(adSet));

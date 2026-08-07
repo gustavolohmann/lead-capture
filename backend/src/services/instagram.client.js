@@ -2,6 +2,11 @@ import axios from 'axios';
 import { env } from '../config/env.js';
 import { logger } from '../utils/logger.js';
 import { AppError } from '../utils/errors.js';
+import {
+  buildFacebookAppSecretProof,
+  buildInstagramAppSecretProof,
+  getInstagramAppConfig,
+} from './meta.instagram.config.js';
 
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 400;
@@ -48,13 +53,34 @@ async function request(method, path, { accessToken, params, data } = {}) {
     timeout: 20000,
   });
 
+  const { appId } = getInstagramAppConfig();
+  const requestParams = {
+    ...(params || {}),
+    access_token: accessToken,
+  };
+  if (appId) {
+    requestParams.app_id = appId;
+  }
+  // Token vem do Login Facebook; proof com secret IG só se configurado e válido.
+  // Preferimos Facebook secret (emissor do token); IG secret como fallback.
+  try {
+    requestParams.appsecret_proof = buildFacebookAppSecretProof(accessToken);
+  } catch {
+    try {
+      requestParams.appsecret_proof =
+        buildInstagramAppSecretProof(accessToken);
+    } catch {
+      // segue só com access_token
+    }
+  }
+
   let lastError;
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt += 1) {
     try {
       const response = await client.request({
         method,
         url: path,
-        params: { ...(params || {}), access_token: accessToken },
+        params: requestParams,
         data,
       });
       return response.data;

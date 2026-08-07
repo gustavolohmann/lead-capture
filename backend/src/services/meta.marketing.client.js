@@ -255,12 +255,19 @@ export const metaMarketingClient = {
     });
   },
 
-  async createAdCreative(adAccountId, accessToken, payload) {
+  async createAdCreative(adAccountId, accessToken, payload, options = {}) {
     const actId = normalizeActId(adAccountId);
+    const params = {
+      access_token: accessToken,
+    };
+    if (options.appId) {
+      params.app_id = String(options.appId);
+    }
+    if (options.appSecretProof) {
+      params.appsecret_proof = String(options.appSecretProof);
+    }
     return request('POST', `/${actId}/adcreatives`, {
-      params: {
-        access_token: accessToken,
-      },
+      params,
       data: toFormBody(payload),
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -268,12 +275,19 @@ export const metaMarketingClient = {
     });
   },
 
-  async createAd(adAccountId, accessToken, payload) {
+  async createAd(adAccountId, accessToken, payload, options = {}) {
     const actId = normalizeActId(adAccountId);
+    const params = {
+      access_token: accessToken,
+    };
+    if (options.appId) {
+      params.app_id = String(options.appId);
+    }
+    if (options.appSecretProof) {
+      params.appsecret_proof = String(options.appSecretProof);
+    }
     return request('POST', `/${actId}/ads`, {
-      params: {
-        access_token: accessToken,
-      },
+      params,
       data: toFormBody(payload),
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',

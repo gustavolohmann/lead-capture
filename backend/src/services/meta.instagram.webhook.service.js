@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { env } from '../config/env.js';
 import { messagingService } from './messaging.service.js';
+import { getInstagramWebhookSecret } from './meta.instagram.config.js';
 import { AppError } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
 
@@ -11,18 +12,26 @@ function timingSafeEqualHex(a, b) {
   return crypto.timingSafeEqual(bufA, bufB);
 }
 
+function signatureMatches(rawBody, providedHex, secret) {
+  if (!secret) return false;
+  const computed = crypto
+    .createHmac('sha256', secret)
+    .update(rawBody)
+    .digest('hex');
+  return timingSafeEqualHex(providedHex, computed);
+}
+
 function verifySignature(rawBody, signatureHeader) {
   if (!signatureHeader || !rawBody) return false;
   const expectedPrefix = 'sha256=';
   if (!signatureHeader.startsWith(expectedPrefix)) return false;
 
   const provided = signatureHeader.slice(expectedPrefix.length);
-  const computed = crypto
-    .createHmac('sha256', env.META_APP_SECRET)
-    .update(rawBody)
-    .digest('hex');
-
-  return timingSafeEqualHex(provided, computed);
+  // Aceita secret do app Instagram ou do app Facebook (produto vinculado)
+  return (
+    signatureMatches(rawBody, provided, getInstagramWebhookSecret()) ||
+    signatureMatches(rawBody, provided, env.META_APP_SECRET)
+  );
 }
 
 export const metaInstagramWebhookService = {
