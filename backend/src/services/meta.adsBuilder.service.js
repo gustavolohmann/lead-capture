@@ -441,10 +441,11 @@ async function createCreativeAndPersist({
     if (description) linkData.description = description;
   } else {
     linkData.link = linkUrl || 'https://www.instagram.com/';
-    linkData.page_welcome_message =
-      creativeInput.pageWelcomeMessage ||
-      body ||
-      'Olá! Como posso ajudar?';
+    // Meta limita welcome message a 300 caracteres (não usar o texto longo do anúncio)
+    const welcomeRaw = String(
+      creativeInput.pageWelcomeMessage || 'Olá! Como posso ajudar?'
+    ).trim();
+    linkData.page_welcome_message = welcomeRaw.slice(0, 300);
   }
 
   const objectStorySpec = {
@@ -517,6 +518,7 @@ async function createAdAndPersist({
   });
 
   if (!metaAd?.id) {
+    const graphError = metaAd?.error || null;
     logger.error('Anúncio Meta sem id', {
       companyId,
       adAccountId,
@@ -524,7 +526,31 @@ async function createAdAndPersist({
       metaCreativeId,
       response: metaAd || null,
     });
-    throw new AppError('Falha ao criar anúncio na Meta', {
+
+    const userMsg =
+      graphError?.error_user_msg ||
+      graphError?.error_user_title ||
+      graphError?.message ||
+      null;
+
+    if (
+      graphError?.code === 31 ||
+      graphError?.error_subcode === 3858385 ||
+      /autentique sua conta|pending action|authenticate/i.test(
+        String(userMsg || '')
+      )
+    ) {
+      throw new AppError(
+        userMsg ||
+          'A Meta bloqueou a criação de anúncios: autentique sua conta no Gerenciador de Anúncios e tente de novo.',
+        {
+          statusCode: 403,
+          code: 'META_AD_ACCOUNT_AUTH_REQUIRED',
+        }
+      );
+    }
+
+    throw new AppError(userMsg || 'Falha ao criar anúncio na Meta', {
       statusCode: 502,
       code: 'META_MARKETING_ERROR',
     });

@@ -38,6 +38,23 @@ function mapMarketingError(error) {
     });
   }
 
+  if (
+    graph?.code === 31 ||
+    graph?.error_subcode === 3858385 ||
+    /autentique sua conta|pending action|authenticate your account/i.test(
+      String(detail || '')
+    )
+  ) {
+    return new AppError(
+      detail ||
+        'A Meta bloqueou a criação de anúncios: autentique sua conta no Gerenciador de Anúncios e tente de novo.',
+      {
+        statusCode: 403,
+        code: 'META_AD_ACCOUNT_AUTH_REQUIRED',
+      }
+    );
+  }
+
   if (graph?.code === 10 || graph?.code === 200 || status === 403) {
     return new AppError(detail || 'Permissão Meta negada para Marketing API', {
       statusCode: 403,
@@ -71,10 +88,14 @@ function mapMarketingError(error) {
       /instagram_actor_id|instagram_user_id|valid Instagram account id/i.test(
         message
       );
+    const isWelcomeTooLong =
+      /welcome message should not exceed|welcome message.*300/i.test(message);
     return new AppError(
       isInstagramId
-        ? 'ID do Instagram inválido para anúncios. Use instagram_user_id da Página vinculada (sincronize Conexão Meta) e tente de novo.'
-        : message || 'Conta de anúncio ou campanha inválida',
+        ? 'ID do Instagram inválido para anúncios. Vincule o IG à Página e sincronize em Conexão Meta.'
+        : isWelcomeTooLong
+          ? 'Mensagem de boas-vindas do Instagram deve ter no máximo 300 caracteres.'
+          : message || 'Conta de anúncio ou campanha inválida',
       {
         statusCode: 400,
         code: isWhatsappUnlinked
@@ -83,9 +104,11 @@ function mapMarketingError(error) {
             ? 'META_LEAD_FORM_NAME_EXISTS'
             : isInstagramId
               ? 'META_INSTAGRAM_ID_INVALID'
-              : detail?.includes('FollowUpActionURL')
-                ? 'META_LEAD_FORM_INVALID'
-                : 'META_INVALID_AD_ACCOUNT',
+              : isWelcomeTooLong
+                ? 'META_WELCOME_MESSAGE_TOO_LONG'
+                : detail?.includes('FollowUpActionURL')
+                  ? 'META_LEAD_FORM_INVALID'
+                  : 'META_INVALID_AD_ACCOUNT',
       }
     );
   }
@@ -116,8 +139,20 @@ async function request(method, path, options = {}) {
         data: options.data,
         headers: options.headers,
       });
+      // Alguns erros Meta voltam 200 com { error: ... }
+      if (response?.data?.error) {
+        const wrapped = {
+          response: {
+            status: 400,
+            data: response.data,
+          },
+        };
+        throw mapMarketingError(wrapped);
+      }
       return response.data;
     } catch (error) {
+      if (error instanceof AppError) throw error;
+
       lastError = error;
 
       const retryable = isRetryable(error);
