@@ -4,14 +4,13 @@ import { db } from './config/database.js';
 import { logger } from './utils/logger.js';
 import { wireDomainEvents } from './events/wire.js';
 import { startAutomationRunner } from './jobs/automation.runner.js';
-import { bootstrapMasterIfNeeded } from './bootstrap/master.js';
 
 const app = createApp();
 
 async function start() {
   try {
     await db.raw('SELECT 1');
-    await bootstrapMasterIfNeeded();
+    // MASTER só via scripts/seed.js (credenciais na execução). Nunca via env.
     wireDomainEvents();
     startAutomationRunner();
 
