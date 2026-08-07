@@ -227,6 +227,29 @@ export const metaAssetsService = {
             phoneNumber: phoneInfo.phoneNumber,
             phoneNumberId: phoneInfo.phoneNumberId,
           });
+
+          // Garante webhook inbound na Cloud API para esta WABA
+          try {
+            await metaGraphClient.subscribeWhatsappWaba(
+              String(waba.id),
+              resolved.accessToken
+            );
+            logger.info('WABA assinada no app para webhooks', {
+              companyId,
+              wabaId: String(waba.id),
+              phoneNumber: phoneInfo.phoneNumber,
+              phoneNumberId: phoneInfo.phoneNumberId,
+            });
+          } catch (error) {
+            logger.error('Falha ao assinar WABA no app', {
+              companyId,
+              wabaId: String(waba.id),
+              phoneNumber: phoneInfo.phoneNumber,
+              code: error.code || null,
+              detail: error.message,
+            });
+          }
+
           seen.add(String(waba.id));
           count += 1;
         }

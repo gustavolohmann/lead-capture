@@ -194,6 +194,26 @@ export const metaGraphClient = {
     });
   },
 
+  /**
+   * Assina o app na WABA para receber webhooks de mensagens.
+   * Sem isso, o callback pode verificar, mas inbound real não chega.
+   */
+  async subscribeWhatsappWaba(wabaId, accessToken) {
+    return request('POST', `/${wabaId}/subscribed_apps`, {
+      params: {
+        access_token: accessToken,
+      },
+    });
+  },
+
+  async getWhatsappWabaSubscriptions(wabaId, accessToken) {
+    return request('GET', `/${wabaId}/subscribed_apps`, {
+      params: {
+        access_token: accessToken,
+      },
+    });
+  },
+
   async getLead(leadgenId, pageAccessToken) {
     return request('GET', `/${leadgenId}`, {
       params: {
