@@ -230,6 +230,54 @@ function toMetaBudgetCents(dailyBudget) {
   return Math.round(value * 100);
 }
 
+function isMetaOwnedUrl(urlString) {
+  try {
+    const host = new URL(String(urlString)).hostname.toLowerCase();
+    return (
+      host === 'facebook.com' ||
+      host.endsWith('.facebook.com') ||
+      host === 'fb.com' ||
+      host.endsWith('.fb.com') ||
+      host === 'instagram.com' ||
+      host.endsWith('.instagram.com') ||
+      host === 'messenger.com' ||
+      host.endsWith('.messenger.com') ||
+      host === 'fb.me' ||
+      host.endsWith('.fb.me')
+    );
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * Lead Ads exige link externo no criativo (não Página do Facebook).
+ * Preferência: follow-up → privacidade → link do criativo.
+ */
+function resolveLeadAdsExternalLink({
+  followUpActionUrl,
+  privacyPolicyUrl,
+  creativeLink,
+} = {}) {
+  const candidates = [followUpActionUrl, privacyPolicyUrl, creativeLink]
+    .map((value) => String(value || '').trim())
+    .filter(Boolean);
+
+  for (const candidate of candidates) {
+    if (!/^https?:\/\//i.test(candidate)) continue;
+    if (isMetaOwnedUrl(candidate)) continue;
+    return candidate;
+  }
+
+  throw new AppError(
+    'Lead Ads exige uma URL externa (site/privacidade), não uma Página do Facebook. Informe privacyPolicyUrl ou followUpActionUrl válidos.',
+    {
+      statusCode: 400,
+      code: 'META_LEAD_EXTERNAL_URL_REQUIRED',
+    }
+  );
+}
+
 function stripDataUrl(base64) {
   const value = String(base64 || '').trim();
   const match = value.match(/^data:image\/[a-zA-Z0-9.+-]+;base64,(.+)$/);
@@ -775,7 +823,13 @@ export const metaAdsBuilderService = {
     });
 
     const ctaType = String(creativeInput.cta || creativeInput.ctaType || 'SIGN_UP');
-    const pageLink = `https://www.facebook.com/${page.page_id}`;
+    // Meta exige URL externa no criativo de Lead Ads (não pode ser facebook.com/Página)
+    const externalLink = resolveLeadAdsExternalLink({
+      followUpActionUrl:
+        formInput.followUpActionUrl || formInput.privacyPolicyUrl,
+      privacyPolicyUrl: formInput.privacyPolicyUrl,
+      creativeLink: creativeInput.linkUrl || creativeInput.link,
+    });
     const { creative, metaCreative } = await createCreativeAndPersist({
       companyId,
       adAccountId,
@@ -784,10 +838,10 @@ export const metaAdsBuilderService = {
       campaignName,
       creativeInput,
       ctaType,
-      linkUrl: pageLink,
+      linkUrl: externalLink,
       ctaValue: {
         lead_gen_form_id: String(form.formId),
-        link: pageLink,
+        link: externalLink,
       },
       defaultTitle: 'Solicite orçamento',
       defaultBody: 'Preencha o formulário',
