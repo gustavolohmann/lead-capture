@@ -24,6 +24,7 @@ const envSchema = z.object({
   // App Instagram (produto API do Instagram) — campanhas/mensagens IG
   META_INSTAGRAM_APP_ID: z.string().optional().default(''),
   META_INSTAGRAM_APP_SECRET: z.string().optional().default(''),
+  META_INSTAGRAM_ACCESS_TOKEN: z.string().optional().default(''),
   META_REDIRECT_URI: z
     .string()
     .url()

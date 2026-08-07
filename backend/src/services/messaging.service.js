@@ -11,6 +11,7 @@ import { decrypt } from '../utils/encryption.js';
 import { AppError } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
 import { env } from '../config/env.js';
+import { getInstagramAccessToken } from './meta.instagram.config.js';
 import { ConversationChannel } from '../models/conversation.model.js';
 import {
   MessageDirection,
@@ -327,11 +328,12 @@ export const messagingService = {
         });
       }
 
+      const igAccessToken = getInstagramAccessToken(accessToken);
       const result = await instagramClient.sendText({
         igUserId: igAccounts[0].instagram_id,
         recipientId,
         text: content,
-        accessToken,
+        accessToken: igAccessToken,
       });
       externalMessageId = result?.message_id || result?.id || null;
     } else {
