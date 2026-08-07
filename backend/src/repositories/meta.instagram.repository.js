@@ -20,4 +20,11 @@ export const metaInstagramRepository = {
       .where({ company_id: companyId })
       .orderBy('username', 'asc');
   },
+
+  async findByInstagramId(instagramId) {
+    if (!instagramId) return null;
+    return db('meta_instagram_accounts')
+      .where({ instagram_id: String(instagramId) })
+      .first();
+  },
 };

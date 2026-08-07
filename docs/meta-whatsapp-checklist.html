@@ -27,6 +27,7 @@
       <ul>
         <li>App: <span class="url">https://api-production-cbf47.up.railway.app</span></li>
         <li>Webhook WhatsApp: <span class="url">https://api-production-cbf47.up.railway.app/webhooks/meta/whatsapp</span></li>
+        <li>Webhook Instagram: <span class="url">https://api-production-cbf47.up.railway.app/webhooks/meta/instagram</span></li>
         <li>Webhook Lead Ads: <span class="url">https://api-production-cbf47.up.railway.app/webhooks/meta/leads</span></li>
         <li>Verify token: o mesmo <code>META_WEBHOOK_VERIFY_TOKEN</code> do Railway</li>
       </ul>
@@ -50,6 +51,15 @@
         <li>Verify token: valor do Railway</li>
         <li>Assinar o campo <strong>messages</strong></li>
         <li>Testar envio de mensagem do celular para o número da WABA → deve aparecer em Conversas</li>
+      </ol>
+      <p><strong>Instagram Messaging</strong></p>
+      <ol>
+        <li>App Meta → Webhooks (ou Instagram → Configuration) → objeto <strong>Instagram</strong></li>
+        <li>Callback URL: webhook Instagram acima</li>
+        <li>Verify token: o mesmo do Railway</li>
+        <li>Assinar o campo <strong>messages</strong></li>
+        <li>Garantir Página AgendaJá + @business com mensagens unificadas</li>
+        <li>DM de outra conta para o Instagram Business → deve aparecer em Conversas → responder pelo Lead Capture</li>
       </ol>
     </section>
 

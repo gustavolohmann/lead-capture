@@ -20,6 +20,7 @@ import {
 import { toPublicConversation } from '../models/conversation.model.js';
 
 const WA_INBOUND_PROVIDER = 'meta_whatsapp';
+const IG_INBOUND_PROVIDER = 'meta_instagram';
 
 async function getAccessToken(companyId) {
   const connection = await metaConnectionRepository.findByCompanyId(companyId);
@@ -106,6 +107,25 @@ function extractInboundText(message) {
     return message.document?.filename || '[documento]';
   }
   return `[${message.type || 'mensagem'}]`;
+}
+
+function extractInstagramInboundText(message) {
+  if (!message) return null;
+  if (message.text) return String(message.text);
+  if (message.quick_reply?.payload) {
+    return String(message.quick_reply.payload);
+  }
+  const attachments = Array.isArray(message.attachments)
+    ? message.attachments
+    : [];
+  if (attachments.length > 0) {
+    const types = attachments
+      .map((item) => item?.type || 'anexo')
+      .filter(Boolean);
+    return `[${types.join(', ') || 'anexo'}]`;
+  }
+  if (message.is_unsupported) return '[mensagem não suportada]';
+  return '[mensagem]';
 }
 
 function buildTemplateComponents(lead, templateBodyParams) {
@@ -443,6 +463,128 @@ export const messagingService = {
       processed += 1;
 
       logger.info('Mensagem WhatsApp inbound salva', {
+        companyId,
+        conversationId: conversation.id,
+        externalMessageId,
+      });
+    }
+
+    return { processed };
+  },
+
+  async handleIncomingInstagramMessage({ igAccountId, events }) {
+    const eventList = Array.isArray(events) ? events : [];
+    if (!eventList.length) return { processed: 0 };
+
+    const recipientCandidates = new Set();
+    if (igAccountId) recipientCandidates.add(String(igAccountId));
+    for (const event of eventList) {
+      const recipientId = event?.recipient?.id
+        ? String(event.recipient.id)
+        : null;
+      if (recipientId) recipientCandidates.add(recipientId);
+    }
+
+    let igAccount = null;
+    for (const candidate of recipientCandidates) {
+      igAccount = await metaInstagramRepository.findByInstagramId(candidate);
+      if (igAccount) break;
+    }
+
+    if (!igAccount) {
+      logger.info('Webhook Instagram ignorado: conta não mapeada', {
+        igAccountId,
+        candidates: [...recipientCandidates],
+      });
+      return { processed: 0 };
+    }
+
+    const companyId = igAccount.company_id;
+    let processed = 0;
+
+    for (const event of eventList) {
+      const message = event?.message;
+      if (!message) continue;
+      if (message.is_echo || message.is_deleted) continue;
+
+      const externalMessageId = message.mid ? String(message.mid) : null;
+      if (!externalMessageId) continue;
+
+      const createdEvent = await webhookEventRepository.create({
+        provider: IG_INBOUND_PROVIDER,
+        eventId: externalMessageId,
+        payload: event,
+      });
+      if (!createdEvent) continue;
+
+      const existing = await messageRepository.findByExternalMessageId(
+        companyId,
+        externalMessageId
+      );
+      if (existing) {
+        await webhookEventRepository.markProcessed(
+          IG_INBOUND_PROVIDER,
+          externalMessageId
+        );
+        continue;
+      }
+
+      const senderId = event?.sender?.id ? String(event.sender.id) : null;
+      if (!senderId) {
+        await webhookEventRepository.markProcessed(
+          IG_INBOUND_PROVIDER,
+          externalMessageId
+        );
+        continue;
+      }
+
+      const content = extractInstagramInboundText(message) || '[mensagem]';
+
+      let conversation = await conversationRepository.findByExternalUserId(
+        companyId,
+        ConversationChannel.INSTAGRAM,
+        senderId
+      );
+
+      if (!conversation) {
+        const lead = await leadRepository.create({
+          companyId,
+          name: `Instagram ${senderId.slice(-6)}`,
+          phone: null,
+          email: null,
+          source: 'INSTAGRAM_INBOUND',
+          origin: 'instagram_inbound',
+          rawData: {
+            event,
+            igAccountId: igAccount.instagram_id,
+            igUsername: igAccount.username || null,
+          },
+        });
+
+        conversation = await this.createOrGetConversation({
+          companyId,
+          leadId: lead.id,
+          channel: ConversationChannel.INSTAGRAM,
+          externalUserId: senderId,
+        });
+      }
+
+      await this.saveMessage({
+        companyId,
+        conversationId: conversation.id,
+        direction: MessageDirection.INBOUND,
+        content,
+        externalMessageId,
+        status: MessageStatus.RECEIVED,
+      });
+
+      await webhookEventRepository.markProcessed(
+        IG_INBOUND_PROVIDER,
+        externalMessageId
+      );
+      processed += 1;
+
+      logger.info('Mensagem Instagram inbound salva', {
         companyId,
         conversationId: conversation.id,
         externalMessageId,

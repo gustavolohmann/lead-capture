@@ -28,4 +28,16 @@ webhooksRoutes.post(
   webhooksController.receiveMetaWhatsapp
 );
 
+webhooksRoutes.get(
+  '/meta/instagram',
+  webhookRateLimiter,
+  webhooksController.verifyMetaInstagram
+);
+
+webhooksRoutes.post(
+  '/meta/instagram',
+  webhookRateLimiter,
+  webhooksController.receiveMetaInstagram
+);
+
 export { webhooksRoutes };

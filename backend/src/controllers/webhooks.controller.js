@@ -1,5 +1,6 @@
 import { metaLeadsService } from '../services/meta.leads.service.js';
 import { metaWhatsappWebhookService } from '../services/meta.whatsapp.webhook.service.js';
+import { metaInstagramWebhookService } from '../services/meta.instagram.webhook.service.js';
 
 export const webhooksController = {
   async verifyMetaLeads(req, res, next) {
@@ -56,6 +57,40 @@ export const webhooksController = {
       const rawBody = req.rawBody;
 
       const result = await metaWhatsappWebhookService.handleWhatsappWebhook({
+        rawBody,
+        signature,
+        payload: req.body,
+      });
+
+      return res.status(200).json({
+        success: true,
+        ...result,
+      });
+    } catch (error) {
+      return next(error);
+    }
+  },
+
+  async verifyMetaInstagram(req, res, next) {
+    try {
+      const challenge = metaInstagramWebhookService.verifyWebhook({
+        mode: req.query['hub.mode'],
+        verifyToken: req.query['hub.verify_token'],
+        challenge: req.query['hub.challenge'],
+      });
+
+      return res.status(200).type('text/plain').send(challenge);
+    } catch (error) {
+      return next(error);
+    }
+  },
+
+  async receiveMetaInstagram(req, res, next) {
+    try {
+      const signature = req.get('X-Hub-Signature-256') || '';
+      const rawBody = req.rawBody;
+
+      const result = await metaInstagramWebhookService.handleInstagramWebhook({
         rawBody,
         signature,
         payload: req.body,
