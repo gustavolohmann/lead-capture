@@ -1,13 +1,11 @@
 import { companyService } from './company.service.js';
 import { metaMarketingClient } from './meta.marketing.client.js';
+import { metaGraphClient } from './meta.graph.client.js';
 import { metaConnectionRepository } from '../repositories/meta.connection.repository.js';
 import { metaPageRepository } from '../repositories/meta.page.repository.js';
 import { metaAdAccountRepository } from '../repositories/meta.adAccount.repository.js';
 import { metaInstagramRepository } from '../repositories/meta.instagram.repository.js';
-import {
-  buildFacebookAppSecretProof,
-  requireInstagramAppConfig,
-} from './meta.instagram.config.js';
+import { requireInstagramAppConfig } from './meta.instagram.config.js';
 import { leadFormRepository } from '../repositories/leadForm.repository.js';
 import { adSetRepository } from '../repositories/adSet.repository.js';
 import { adCreativeRepository } from '../repositories/adCreative.repository.js';
@@ -383,9 +381,7 @@ async function createCreativeAndPersist({
   ctaValue,
   defaultTitle,
   defaultBody,
-  instagramActorId = null,
-  instagramAppId = null,
-  instagramAppSecretProof = null,
+  instagramUserId = null,
 }) {
   const imageBase64 = stripDataUrl(
     creativeInput.imageBase64 || creativeInput.image
@@ -427,7 +423,7 @@ async function createCreativeAndPersist({
   }
 
   const isInstagramDirect =
-    Boolean(instagramActorId) ||
+    Boolean(instagramUserId) ||
     ctaType === 'INSTAGRAM_MESSAGE' ||
     ctaValue?.app_destination === 'INSTAGRAM_DIRECT';
 
@@ -456,9 +452,9 @@ async function createCreativeAndPersist({
     link_data: linkData,
   };
 
-  if (instagramActorId) {
-    objectStorySpec.instagram_user_id = String(instagramActorId);
-    objectStorySpec.instagram_actor_id = String(instagramActorId);
+  // Marketing API: só instagram_user_id (instagram_actor_id está deprecated)
+  if (instagramUserId) {
+    objectStorySpec.instagram_user_id = String(instagramUserId);
   }
 
   const creativePayload = {
@@ -469,11 +465,7 @@ async function createCreativeAndPersist({
   const metaCreative = await metaMarketingClient.createAdCreative(
     adAccountId,
     accessToken,
-    creativePayload,
-    {
-      appId: instagramAppId || undefined,
-      appSecretProof: instagramAppSecretProof || undefined,
-    }
+    creativePayload
   );
 
   if (!metaCreative?.id) {
@@ -513,26 +505,16 @@ async function createAdAndPersist({
   metaCreativeId,
   campaignName,
   creativeInput,
-  instagramAppId = null,
-  instagramAppSecretProof = null,
 }) {
   const adName = String(
     creativeInput.adName || `Anúncio ${campaignName}`
   ).trim();
-  const metaAd = await metaMarketingClient.createAd(
-    adAccountId,
-    accessToken,
-    {
-      name: adName,
-      adset_id: metaAdSetId,
-      creative: { creative_id: metaCreativeId },
-      status: 'PAUSED',
-    },
-    {
-      appId: instagramAppId || undefined,
-      appSecretProof: instagramAppSecretProof || undefined,
-    }
-  );
+  const metaAd = await metaMarketingClient.createAd(adAccountId, accessToken, {
+    name: adName,
+    adset_id: metaAdSetId,
+    creative: { creative_id: metaCreativeId },
+    status: 'PAUSED',
+  });
 
   if (!metaAd?.id) {
     logger.error('Anúncio Meta sem id', {
@@ -832,40 +814,64 @@ export const metaAdsBuilderService = {
       }
     }
 
-    let instagramActorId = null;
-    let instagramAppId = null;
-    let instagramAppSecretProof = null;
+    let instagramUserId = null;
     if (channels.includes('INSTAGRAM')) {
-      const { appId } = requireInstagramAppConfig();
-      instagramAppId = appId;
+      // Garante env IG configurado (webhook/mensagens); Marketing API usa token Facebook
+      requireInstagramAppConfig();
+    }
 
-      const igAccounts =
-        await metaInstagramRepository.findByCompanyId(companyId);
-      instagramActorId = igAccounts[0]?.instagram_id
-        ? String(igAccounts[0].instagram_id)
-        : null;
-      if (!instagramActorId) {
+    const adAccountId = await assertAdAccount(companyId, input.adAccountId);
+    const accessToken = await getUserToken(companyId);
+    const { page, pageAccessToken } = await getPageWithToken(
+      companyId,
+      input.pageId
+    );
+
+    if (channels.includes('INSTAGRAM')) {
+      // Resolve IG da Página selecionada (ID fresco), com fallback do sync local
+      try {
+        const igResponse = await metaGraphClient.getPageInstagram(
+          page.page_id,
+          pageAccessToken
+        );
+        if (igResponse?.instagram_business_account?.id) {
+          instagramUserId = String(igResponse.instagram_business_account.id);
+          await metaInstagramRepository.upsert({
+            companyId,
+            instagramId: instagramUserId,
+            username: igResponse.instagram_business_account.username || null,
+          });
+        }
+      } catch (error) {
+        logger.error('Falha ao resolver Instagram da página para anúncio', {
+          companyId,
+          pageId: page.page_id,
+          detail: error?.message || null,
+        });
+      }
+
+      if (!instagramUserId) {
+        const igAccounts =
+          await metaInstagramRepository.findByCompanyId(companyId);
+        instagramUserId = igAccounts[0]?.instagram_id
+          ? String(igAccounts[0].instagram_id)
+          : null;
+      }
+
+      if (!instagramUserId) {
         throw new AppError(
-          'Nenhuma conta Instagram sincronizada. Sincronize em Conexão Meta.',
+          'Nenhuma conta Instagram vinculada à Página selecionada. Vincule o IG à Página e sincronize em Conexão Meta.',
           {
             statusCode: 400,
             code: 'INSTAGRAM_ACCOUNT_MISSING',
           }
         );
       }
-    }
 
-    const adAccountId = await assertAdAccount(companyId, input.adAccountId);
-    const accessToken = await getUserToken(companyId);
-    const { page } = await getPageWithToken(companyId, input.pageId);
-
-    if (channels.includes('INSTAGRAM')) {
-      // app_id = App Instagram; proof = secret do app Facebook (emissor do token OAuth)
-      instagramAppSecretProof = buildFacebookAppSecretProof(accessToken);
-      logger.info('Ads Builder: Instagram app configurado', {
+      logger.info('Ads Builder: Instagram user id', {
         companyId,
-        instagramAppId,
-        instagramActorId,
+        pageId: page.page_id,
+        instagramUserId,
       });
     }
 
@@ -933,7 +939,7 @@ export const metaAdsBuilderService = {
         let ctaType = 'INSTAGRAM_MESSAGE';
         let ctaValue = { app_destination: 'INSTAGRAM_DIRECT' };
         let linkUrl = 'https://www.instagram.com/';
-        let channelInstagramId = null;
+        let channelInstagramUserId = null;
 
         if (channel === 'WHATSAPP') {
           promotedObject.whatsapp_phone_number = String(
@@ -946,7 +952,7 @@ export const metaAdsBuilderService = {
           };
           linkUrl = `https://www.facebook.com/${page.page_id}`;
         } else {
-          channelInstagramId = instagramActorId;
+          channelInstagramUserId = instagramUserId;
         }
 
         const adSetName = `${baseAdSetName} · ${channel}`;
@@ -995,11 +1001,7 @@ export const metaAdsBuilderService = {
           ctaType: creativeInput.cta || creativeInput.ctaType || ctaType,
           linkUrl,
           ctaValue,
-          instagramActorId: channelInstagramId,
-          instagramAppId:
-            channel === 'INSTAGRAM' ? instagramAppId : null,
-          instagramAppSecretProof:
-            channel === 'INSTAGRAM' ? instagramAppSecretProof : null,
+          instagramUserId: channelInstagramUserId,
           defaultTitle: 'Fale conosco',
           defaultBody: 'Envie uma mensagem e tire suas dúvidas.',
         });
@@ -1014,10 +1016,6 @@ export const metaAdsBuilderService = {
           metaCreativeId: metaCreative.id,
           campaignName: `${campaignName} ${channel}`,
           creativeInput,
-          instagramAppId:
-            channel === 'INSTAGRAM' ? instagramAppId : null,
-          instagramAppSecretProof:
-            channel === 'INSTAGRAM' ? instagramAppSecretProof : null,
         });
 
         adSets.push(toPublicAdSet(adSet));

@@ -58,25 +58,34 @@ function mapMarketingError(error) {
   }
 
   if (graph?.code === 100 || graph?.error_subcode === 33) {
+    const message = String(detail || graph?.message || '');
     const isFormName =
       /nome do formulário já existe|form.*already exists|duplicate/i.test(
-        String(detail || '')
+        message
       );
     const isWhatsappUnlinked =
       /whatsapp phone number is not linked|não está vinculado|not linked to your account/i.test(
-        String(detail || graph?.message || '')
+        message
+      );
+    const isInstagramId =
+      /instagram_actor_id|instagram_user_id|valid Instagram account id/i.test(
+        message
       );
     return new AppError(
-      detail || graph?.message || 'Conta de anúncio ou campanha inválida',
+      isInstagramId
+        ? 'ID do Instagram inválido para anúncios. Use instagram_user_id da Página vinculada (sincronize Conexão Meta) e tente de novo.'
+        : message || 'Conta de anúncio ou campanha inválida',
       {
         statusCode: 400,
         code: isWhatsappUnlinked
           ? 'META_WHATSAPP_NOT_LINKED'
           : isFormName
             ? 'META_LEAD_FORM_NAME_EXISTS'
-            : detail?.includes('FollowUpActionURL')
-              ? 'META_LEAD_FORM_INVALID'
-              : 'META_INVALID_AD_ACCOUNT',
+            : isInstagramId
+              ? 'META_INSTAGRAM_ID_INVALID'
+              : detail?.includes('FollowUpActionURL')
+                ? 'META_LEAD_FORM_INVALID'
+                : 'META_INVALID_AD_ACCOUNT',
       }
     );
   }
