@@ -6,6 +6,11 @@ export const conversationsApi = {
     return data;
   },
 
+  async getContact(id) {
+    const { data } = await api.get(`/conversations/${id}/contact`);
+    return data;
+  },
+
   async listMessages(id) {
     const { data } = await api.get(`/conversations/${id}/messages`);
     return data;

@@ -35,4 +35,11 @@ export const userRepository = {
       company_id: companyId,
     });
   },
+
+  async findActiveByCompanyId(companyId) {
+    return db('users as u')
+      .leftJoin('roles as r', 'r.id', 'u.role_id')
+      .select(userSelect)
+      .where({ 'u.company_id': companyId, 'u.status': 'ACTIVE' });
+  },
 };

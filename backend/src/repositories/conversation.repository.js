@@ -33,13 +33,30 @@ export const conversationRepository = {
   },
 
   async findByCompanyId(companyId) {
+    const lastMessage = db('messages as m')
+      .select(
+        'm.conversation_id',
+        'm.content as last_message_preview',
+        'm.created_at as last_message_at',
+        'm.direction as last_message_direction'
+      )
+      .whereRaw(
+        'm.id = (SELECT MAX(m2.id) FROM messages m2 WHERE m2.conversation_id = m.conversation_id AND m2.company_id = ?)',
+        [companyId]
+      )
+      .as('lm');
+
     return db('conversations as c')
       .leftJoin('leads as l', 'l.id', 'c.lead_id')
+      .leftJoin(lastMessage, 'lm.conversation_id', 'c.id')
       .select(
         'c.*',
         'l.name as lead_name',
         'l.phone as lead_phone',
-        'l.email as lead_email'
+        'l.email as lead_email',
+        'lm.last_message_preview',
+        'lm.last_message_at',
+        'lm.last_message_direction'
       )
       .where({ 'c.company_id': companyId })
       .orderBy('c.updated_at', 'desc');

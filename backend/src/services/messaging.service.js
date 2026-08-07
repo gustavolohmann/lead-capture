@@ -19,6 +19,7 @@ import {
   toPublicMessage,
 } from '../models/message.model.js';
 import { toPublicConversation } from '../models/conversation.model.js';
+import { emitMessageCreated } from '../events/message.events.js';
 
 const WA_INBOUND_PROVIDER = 'meta_whatsapp';
 const IG_INBOUND_PROVIDER = 'meta_instagram';
@@ -198,7 +199,7 @@ export const messagingService = {
     externalMessageId,
     status,
   }) {
-    return messageRepository.create({
+    const row = await messageRepository.create({
       companyId,
       conversationId,
       direction,
@@ -206,6 +207,28 @@ export const messagingService = {
       externalMessageId,
       status,
     });
+
+    const conversation = await conversationRepository.findById(
+      conversationId,
+      companyId
+    );
+
+    emitMessageCreated({
+      message: {
+        id: row.id,
+        conversationId: row.conversation_id,
+        companyId: row.company_id,
+        leadId: conversation?.lead_id ?? null,
+        direction: row.direction,
+        content: row.content,
+        channel: conversation?.channel ?? null,
+        status: row.status,
+        externalMessageId: row.external_message_id ?? null,
+        createdAt: row.created_at,
+      },
+    });
+
+    return row;
   },
 
   async listConversations(companyId) {

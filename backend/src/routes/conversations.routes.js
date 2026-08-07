@@ -10,6 +10,7 @@ const conversationsRoutes = Router();
 conversationsRoutes.use(authMiddleware);
 
 conversationsRoutes.get('/', conversationsController.list);
+conversationsRoutes.get('/:id/contact', conversationsController.getContact);
 conversationsRoutes.get('/:id/messages', conversationsController.listMessages);
 conversationsRoutes.post(
   '/:id/messages',

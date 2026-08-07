@@ -14,9 +14,14 @@
 
 .conversations-layout {
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 280px minmax(0, 1fr) 280px;
   gap: var(--space-lg);
   min-height: 520px;
+}
+
+.conversations-layout > .conversation-user-info {
+  border: 1px solid var(--brand-border);
+  border-radius: var(--radius-md);
 }
 
 .conversations-list,
@@ -38,9 +43,44 @@
   margin-bottom: 4px;
 }
 
-.conversations-item span {
+.conversations-item__top {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.conversations-item__time,
+.conversations-item__preview,
+.conversations-item__meta {
   color: var(--brand-slate);
   font-size: var(--text-caption);
+}
+
+.conversations-item__preview {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.conversations-item__meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.conversations-item__unread {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #004ac6;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
 }
 
 .conversations-item.is-active,
@@ -112,6 +152,16 @@
   display: grid;
   grid-template-columns: 1fr auto;
   gap: var(--space-sm);
+}
+
+@media (max-width: 1100px) {
+  .conversations-layout {
+    grid-template-columns: 260px minmax(0, 1fr);
+  }
+
+  .conversations-layout > .conversation-user-info {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 900px) {

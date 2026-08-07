@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
+import NotificationBell from '../components/NotificationBell/NotificationBell.jsx';
 import './AppLayout.css';
 
 const NAV_ITEMS = [
@@ -137,14 +138,7 @@ export default function AppLayout() {
             <button type="button" className="shell-icon-btn" aria-label="Histórico">
               <span className="material-symbols-outlined">history</span>
             </button>
-            <button
-              type="button"
-              className="shell-icon-btn shell-icon-btn--notify"
-              aria-label="Notificações"
-            >
-              <span className="material-symbols-outlined">notifications</span>
-              <span className="shell-icon-btn__dot" />
-            </button>
+            <NotificationBell />
             <div className="shell-topbar__divider" />
             <button type="button" className="shell-export" disabled title="Em breve">
               <span className="material-symbols-outlined">download</span>

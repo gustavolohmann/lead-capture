@@ -28,6 +28,7 @@ export async function resetTestData() {
 
   await db.raw('SET FOREIGN_KEY_CHECKS = 0');
   const tables = [
+    'notifications',
     'messages',
     'conversations',
     'automation_executions',
@@ -140,13 +141,16 @@ export async function seedMetaFixtures(companyId) {
 
   await db('meta_whatsapp_accounts').insert({
     company_id: companyId,
-    business_account_id: 'waba_e2e_1',
+    business_account_id: `waba_e2e_${companyId}`,
     phone_number: '+5541999999999',
+    phone_number_id: `phone_${companyId}`,
   });
 
   return {
     pageId: '999',
     adAccountId: 'act_123456',
+    wabaId: `waba_e2e_${companyId}`,
+    phoneNumberId: `phone_${companyId}`,
   };
 }
 

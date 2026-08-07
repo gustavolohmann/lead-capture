@@ -10,6 +10,7 @@ import {
   adsBuilderRoutes,
 } from './adsBuilder.routes.js';
 import { formsRoutes } from './forms.routes.js';
+import { notificationsRoutes } from './notifications.routes.js';
 
 const routes = Router();
 
@@ -22,5 +23,6 @@ routes.use('/lead-forms', leadFormsRoutes);
 routes.use('/forms', formsRoutes);
 routes.use('/conversations', conversationsRoutes);
 routes.use('/automations', automationRoutes);
+routes.use('/notifications', notificationsRoutes);
 
 export { routes };
