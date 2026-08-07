@@ -18,6 +18,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export function createApp() {
   const app = express();
 
+  // Railway / proxies: necessário para rate-limit e X-Forwarded-For
+  app.set('trust proxy', 1);
+
   app.use(
     helmet({
       contentSecurityPolicy: false,

@@ -65,11 +65,38 @@ function normalizePhone(phone) {
   return digits || null;
 }
 
+function isMetaTestWhatsappNumber(phoneNumber) {
+  const digits = String(phoneNumber || '').replace(/\D/g, '');
+  // Números de sandbox da Meta (ex.: +1 555-xxx)
+  return digits.startsWith('1555') || digits.startsWith('555');
+}
+
+function rankWhatsappAccount(account) {
+  const phone = String(account?.phone_number || '');
+  const digits = phone.replace(/\D/g, '');
+  if (!account?.phone_number_id) return 100;
+  if (isMetaTestWhatsappNumber(phone)) return 90;
+  if (digits.startsWith('55')) return 1; // BR real
+  if (phone.startsWith('+') && digits.length >= 10) return 10;
+  return 50;
+}
+
+/**
+ * Escolhe o remetente WhatsApp da empresa.
+ * Prefere número BR real com phone_number_id; evita +1 555 (sandbox).
+ */
 async function resolveWhatsappSender(companyId, accessToken) {
   const waAccounts = await metaWhatsappRepository.findByCompanyId(companyId);
   if (!waAccounts.length) return null;
 
-  const withStoredId = waAccounts.find((account) => account.phone_number_id);
+  const ranked = [...waAccounts].sort(
+    (a, b) => rankWhatsappAccount(a) - rankWhatsappAccount(b)
+  );
+
+  const withStoredId = ranked.find(
+    (account) =>
+      account.phone_number_id && !isMetaTestWhatsappNumber(account.phone_number)
+  );
   if (withStoredId?.phone_number_id) {
     return {
       phoneNumberId: String(withStoredId.phone_number_id),
@@ -77,8 +104,9 @@ async function resolveWhatsappSender(companyId, accessToken) {
     };
   }
 
-  for (const account of waAccounts) {
+  for (const account of ranked) {
     if (!account.business_account_id) continue;
+    if (isMetaTestWhatsappNumber(account.phone_number)) continue;
     try {
       const phoneNumberId = await whatsappClient.resolvePhoneNumberId(
         account.business_account_id,
@@ -104,6 +132,15 @@ async function resolveWhatsappSender(companyId, accessToken) {
         detail: error.message,
       });
     }
+  }
+
+  // Fallback: sandbox só se não houver número real
+  const testAccount = ranked.find((account) => account.phone_number_id);
+  if (testAccount?.phone_number_id) {
+    return {
+      phoneNumberId: String(testAccount.phone_number_id),
+      account: testAccount,
+    };
   }
 
   return null;

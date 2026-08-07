@@ -36,6 +36,16 @@ function mapError(error) {
     });
   }
 
+  if (graph?.code === 131030) {
+    return new AppError(
+      'Número do destinatário não está na lista de teste do WhatsApp. No Meta App → WhatsApp → API Setup, adicione e verifique o número (OTP) ou use um número em produção.',
+      {
+        statusCode: 400,
+        code: 'WHATSAPP_RECIPIENT_NOT_ALLOWED',
+      }
+    );
+  }
+
   return new AppError(graph?.message || 'Erro na WhatsApp Cloud API', {
     statusCode: 502,
     code: 'WHATSAPP_API_ERROR',
