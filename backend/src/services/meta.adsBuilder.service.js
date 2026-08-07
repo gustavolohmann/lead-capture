@@ -5,10 +5,7 @@ import { metaConnectionRepository } from '../repositories/meta.connection.reposi
 import { metaPageRepository } from '../repositories/meta.page.repository.js';
 import { metaAdAccountRepository } from '../repositories/meta.adAccount.repository.js';
 import { metaInstagramRepository } from '../repositories/meta.instagram.repository.js';
-import {
-  requireInstagramAccessToken,
-  requireInstagramAppConfig,
-} from './meta.instagram.config.js';
+import { requireInstagramAppConfig } from './meta.instagram.config.js';
 import { leadFormRepository } from '../repositories/leadForm.repository.js';
 import { adSetRepository } from '../repositories/adSet.repository.js';
 import { adCreativeRepository } from '../repositories/adCreative.repository.js';
@@ -844,21 +841,17 @@ export const metaAdsBuilderService = {
     }
 
     let instagramUserId = null;
-    let instagramAccessToken = null;
     if (channels.includes('INSTAGRAM')) {
       requireInstagramAppConfig();
     }
 
     const adAccountId = await assertAdAccount(companyId, input.adAccountId);
+    // Marketing API exige token Facebook (Login Meta). Token IG (IGAAA...) NÃO serve.
     const accessToken = await getUserToken(companyId);
     const { page, pageAccessToken } = await getPageWithToken(
       companyId,
       input.pageId
     );
-
-    if (channels.includes('INSTAGRAM')) {
-      instagramAccessToken = requireInstagramAccessToken(accessToken);
-    }
 
     if (channels.includes('INSTAGRAM')) {
       // Resolve IG da Página selecionada (ID fresco), com fallback do sync local
@@ -1024,15 +1017,10 @@ export const metaAdsBuilderService = {
           status: 'PAUSED',
         });
 
-        const channelToken =
-          channel === 'INSTAGRAM' && instagramAccessToken
-            ? instagramAccessToken
-            : accessToken;
-
         const { creative, metaCreative } = await createCreativeAndPersist({
           companyId,
           adAccountId,
-          accessToken: channelToken,
+          accessToken,
           pageId: page.page_id,
           campaignName: `${campaignName} ${channel}`,
           creativeInput,
@@ -1047,7 +1035,7 @@ export const metaAdsBuilderService = {
         const ad = await createAdAndPersist({
           companyId,
           adAccountId,
-          accessToken: channelToken,
+          accessToken,
           adSetId: adSet.id,
           metaAdSetId: metaAdSet.id,
           creativeId: creative.id,
