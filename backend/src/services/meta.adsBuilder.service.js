@@ -747,6 +747,8 @@ export const metaAdsBuilderService = {
         campaign_id: metaCampaign.id,
         billing_event: 'IMPRESSIONS',
         optimization_goal: 'LEAD_GENERATION',
+        // Obrigatório para formulário instantâneo (lead_gen_form_id no criativo)
+        destination_type: 'ON_AD',
         bid_strategy: 'LOWEST_COST_WITH_BID_CAP',
         bid_amount: bidAmountCents,
         targeting,
@@ -773,6 +775,7 @@ export const metaAdsBuilderService = {
     });
 
     const ctaType = String(creativeInput.cta || creativeInput.ctaType || 'SIGN_UP');
+    const pageLink = `https://www.facebook.com/${page.page_id}`;
     const { creative, metaCreative } = await createCreativeAndPersist({
       companyId,
       adAccountId,
@@ -781,8 +784,11 @@ export const metaAdsBuilderService = {
       campaignName,
       creativeInput,
       ctaType,
-      linkUrl: `https://www.facebook.com/${page.page_id}`,
-      ctaValue: { lead_gen_form_id: String(form.formId) },
+      linkUrl: pageLink,
+      ctaValue: {
+        lead_gen_form_id: String(form.formId),
+        link: pageLink,
+      },
       defaultTitle: 'Solicite orçamento',
       defaultBody: 'Preencha o formulário',
     });
