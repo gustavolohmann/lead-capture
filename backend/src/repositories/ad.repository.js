@@ -25,6 +25,44 @@ export const adRepository = {
     return db('ads').where({ company_id: companyId, id }).first();
   },
 
+  async findByMetaAdId(companyId, metaAdId) {
+    if (!metaAdId) return null;
+    return db('ads')
+      .where({ company_id: companyId, meta_ad_id: String(metaAdId) })
+      .first();
+  },
+
+  async upsertByMetaAdId({
+    companyId,
+    adSetId,
+    creativeId,
+    metaAdId,
+    name,
+    status = 'PAUSED',
+  }) {
+    const existing = await this.findByMetaAdId(companyId, metaAdId);
+    if (existing) {
+      await db('ads')
+        .where({ id: existing.id, company_id: companyId })
+        .update({
+          ad_set_id: adSetId,
+          creative_id: creativeId,
+          name,
+          status,
+        });
+      return this.findById(companyId, existing.id);
+    }
+
+    return this.create({
+      companyId,
+      adSetId,
+      creativeId,
+      metaAdId,
+      name,
+      status,
+    });
+  },
+
   async findByCompanyId(companyId) {
     return db('ads')
       .where({ company_id: companyId })

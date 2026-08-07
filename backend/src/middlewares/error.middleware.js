@@ -19,13 +19,27 @@ export function errorHandler(err, _req, res, _next) {
     });
   }
 
+  // MySQL duplicate key → mensagem útil em vez de 500 genérico
+  if (err?.code === 'ER_DUP_ENTRY') {
+    logger.error('Registro duplicado', {
+      detail: err.message || null,
+    });
+    return res.status(409).json({
+      success: false,
+      message:
+        'Registro já existe (tentativa anterior). Tente criar a campanha novamente.',
+      code: 'DUPLICATE_RECORD',
+    });
+  }
+
   logger.error(err.message || 'Erro interno', {
     stack: err.stack,
+    code: err.code || null,
   });
 
   return res.status(500).json({
     success: false,
-    message: 'Erro interno do servidor',
+    message: err.message || 'Erro interno do servidor',
     code: 'INTERNAL_SERVER_ERROR',
   });
 }

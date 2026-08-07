@@ -556,7 +556,7 @@ async function createAdAndPersist({
     });
   }
 
-  const ad = await adRepository.create({
+  const ad = await adRepository.upsertByMetaAdId({
     companyId,
     adSetId,
     creativeId,
@@ -1007,7 +1007,7 @@ export const metaAdsBuilderService = {
           );
         }
 
-        const adSet = await adSetRepository.create({
+        const adSet = await adSetRepository.upsertByMetaAdsetId({
           companyId,
           campaignId: campaign.id,
           metaAdsetId: String(metaAdSet.id),
