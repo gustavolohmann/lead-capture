@@ -481,7 +481,7 @@ async function createCreativeAndPersist({
     });
   }
 
-  const creative = await adCreativeRepository.create({
+  const creative = await adCreativeRepository.upsertByMetaCreativeId({
     companyId,
     adAccountId,
     metaCreativeId: String(metaCreative.id),
