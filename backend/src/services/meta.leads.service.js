@@ -70,6 +70,12 @@ function mapLeadFields(fieldData) {
   };
 }
 
+/** Payload do botão "Enviar para meu servidor" no App Dashboard (IDs 4444...). */
+function isMetaDashboardSampleLead({ leadgenId, pageId }) {
+  const fakeId = /^4{6,}$/;
+  return fakeId.test(String(leadgenId || '')) || fakeId.test(String(pageId || ''));
+}
+
 export const metaLeadsService = {
   verifyWebhook({ mode, verifyToken, challenge }) {
     if (!env.META_WEBHOOK_VERIFY_TOKEN) {
@@ -123,6 +129,15 @@ export const metaLeadsService = {
           continue;
         }
 
+        if (isMetaDashboardSampleLead({ leadgenId, pageId })) {
+          logger.info(
+            'Webhook Meta de amostra do App Dashboard ignorado (IDs fictícios). Use a Lead Ads Testing Tool.',
+            { leadgenId, pageId }
+          );
+          skipped += 1;
+          continue;
+        }
+
         const eventId = leadgenId;
         const created = await webhookEventRepository.create({
           provider: PROVIDER,
@@ -131,9 +146,16 @@ export const metaLeadsService = {
         });
 
         if (!created) {
-          logger.info('Webhook Meta duplicado ignorado', { eventId });
-          skipped += 1;
-          continue;
+          const existing = await webhookEventRepository.findByProviderAndEventId(
+            PROVIDER,
+            eventId
+          );
+          if (existing?.processed) {
+            logger.info('Webhook Meta duplicado ignorado', { eventId });
+            skipped += 1;
+            continue;
+          }
+          logger.info('Webhook Meta pendente — reprocessando', { eventId });
         }
 
         try {
