@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS whatsapp_templates (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  company_id BIGINT UNSIGNED NOT NULL,
+  company_id INT UNSIGNED NOT NULL,
   waba_id VARCHAR(64) NOT NULL,
   meta_template_id VARCHAR(64) NULL,
   name VARCHAR(512) NOT NULL,
