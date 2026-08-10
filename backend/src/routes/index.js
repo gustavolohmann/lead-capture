@@ -11,6 +11,7 @@ import {
 } from './adsBuilder.routes.js';
 import { formsRoutes } from './forms.routes.js';
 import { notificationsRoutes } from './notifications.routes.js';
+import { whatsappTemplateRoutes } from './whatsappTemplate.routes.js';
 
 const routes = Router();
 
@@ -24,5 +25,6 @@ routes.use('/forms', formsRoutes);
 routes.use('/conversations', conversationsRoutes);
 routes.use('/automations', automationRoutes);
 routes.use('/notifications', notificationsRoutes);
+routes.use('/whatsapp/templates', whatsappTemplateRoutes);
 
 export { routes };

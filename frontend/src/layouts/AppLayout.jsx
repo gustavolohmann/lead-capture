@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { to: '/forms', label: 'Formulários', icon: 'description' },
   { to: '/campaigns', label: 'Campanhas', icon: 'leaderboard' },
   { to: '/conversations', label: 'Conversas', icon: 'chat' },
+  { to: '/whatsapp/templates', label: 'Templates WA', icon: 'sms' },
   { to: '/automations', label: 'Automações', icon: 'bolt' },
 ];
 

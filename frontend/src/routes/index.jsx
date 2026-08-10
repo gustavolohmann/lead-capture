@@ -14,6 +14,7 @@ import FormPublic from '../pages/Forms/FormPublic.jsx';
 import Conversations from '../pages/Conversations/Conversations.jsx';
 import Automations from '../pages/Automations/Automations.jsx';
 import CampaignAutomation from '../pages/CampaignAutomation/CampaignAutomation.jsx';
+import WhatsappTemplates from '../pages/WhatsappTemplates/WhatsappTemplates.jsx';
 import AppLayout from '../layouts/AppLayout.jsx';
 import { useAuth } from '../hooks/useAuth.js';
 
@@ -75,6 +76,7 @@ export default function AppRoutes() {
         <Route path="/forms/:id/preview" element={<FormPreview />} />
         <Route path="/conversations" element={<Conversations />} />
         <Route path="/automations" element={<Automations />} />
+        <Route path="/whatsapp/templates" element={<WhatsappTemplates />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />

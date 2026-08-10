@@ -158,4 +158,22 @@ export const whatsappClient = {
       },
     });
   },
+
+  async listMessageTemplates(wabaId, accessToken, { limit = 100 } = {}) {
+    return request('GET', `/${wabaId}/message_templates`, {
+      accessToken,
+      params: {
+        fields:
+          'id,name,language,status,category,rejected_reason,quality_score,components,parameter_format',
+        limit,
+      },
+    });
+  },
+
+  async createMessageTemplate(wabaId, accessToken, payload) {
+    return request('POST', `/${wabaId}/message_templates`, {
+      accessToken,
+      data: payload,
+    });
+  },
 };

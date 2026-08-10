@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { env } from '../config/env.js';
 import { messagingService } from './messaging.service.js';
+import { whatsappTemplateService } from './whatsappTemplate.service.js';
 import { AppError } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
 
@@ -63,11 +64,37 @@ export const metaWhatsappWebhookService = {
     const entries = Array.isArray(payload?.entry) ? payload.entry : [];
 
     for (const entry of entries) {
+      const wabaId = entry?.id ? String(entry.id) : null;
       const changes = Array.isArray(entry?.changes) ? entry.changes : [];
+
       for (const change of changes) {
-        if (change?.field && change.field !== 'messages') continue;
+        const field = change?.field;
+
+        if (field === 'message_template_status_update') {
+          const value = change.value || {};
+          await whatsappTemplateService.applyStatusUpdate({
+            wabaId,
+            metaTemplateId: value.message_template_id
+              ? String(value.message_template_id)
+              : null,
+            name: value.message_template_name || null,
+            language: value.message_template_language || null,
+            event:
+              value.event ||
+              value.message_template_status ||
+              value.new_status ||
+              null,
+            reason: value.reason || value.rejected_reason || null,
+            rejectionInfo: value.other_info || value.rejection_info || null,
+          });
+          processed += 1;
+          continue;
+        }
+
+        if (field && field !== 'messages') continue;
+
         const result = await messagingService.handleIncomingMessage({
-          wabaId: entry?.id ? String(entry.id) : null,
+          wabaId,
           value: change?.value || {},
         });
         processed += Number(result?.processed || 0);

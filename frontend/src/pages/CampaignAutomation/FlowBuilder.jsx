@@ -1,3 +1,6 @@
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { whatsappTemplatesApi } from '../../services/whatsappTemplates.api.js';
 import './Automation.css';
 
 export const STEP_TYPES = [
@@ -31,6 +34,7 @@ export function StepCard({
   onChange,
   onRemove,
   onMove,
+  approvedTemplates = [],
 }) {
   const typeMeta = STEP_TYPES.find((t) => t.value === step.type);
 
@@ -100,42 +104,56 @@ export function StepCard({
             <>
               <label className="flow-field">
                 <span className="flow-field__label">
-                  Template WhatsApp (1º contato)
+                  Template WhatsApp (1º contato / fora de 24h)
                 </span>
-                <input
+                <select
                   className="flow-field__control"
-                  type="text"
-                  placeholder="ex: lead_followup"
                   value={step.config?.templateName || ''}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    const name = e.target.value;
+                    const selected = approvedTemplates.find(
+                      (t) => t.name === name
+                    );
                     onChange({
                       ...step,
                       config: {
                         ...step.config,
-                        templateName: e.target.value.trim(),
+                        templateName: name,
+                        templateLanguage:
+                          selected?.language ||
+                          step.config?.templateLanguage ||
+                          'pt_BR',
                       },
-                    })
-                  }
-                />
+                    });
+                  }}
+                >
+                  <option value="">Sem template (só texto livre)</option>
+                  {approvedTemplates.map((tpl) => (
+                    <option key={tpl.id} value={tpl.name}>
+                      {tpl.name} ({tpl.language})
+                    </option>
+                  ))}
+                </select>
               </label>
-              <label className="flow-field">
-                <span className="flow-field__label">Idioma do template</span>
-                <input
-                  className="flow-field__control"
-                  type="text"
-                  placeholder="pt_BR"
-                  value={step.config?.templateLanguage || 'pt_BR'}
-                  onChange={(e) =>
-                    onChange({
-                      ...step,
-                      config: {
-                        ...step.config,
-                        templateLanguage: e.target.value.trim() || 'pt_BR',
-                      },
-                    })
-                  }
-                />
-              </label>
+              {step.config?.templateName ? (
+                <label className="flow-field">
+                  <span className="flow-field__label">Idioma do template</span>
+                  <input
+                    className="flow-field__control"
+                    type="text"
+                    value={step.config?.templateLanguage || 'pt_BR'}
+                    onChange={(e) =>
+                      onChange({
+                        ...step,
+                        config: {
+                          ...step.config,
+                          templateLanguage: e.target.value.trim() || 'pt_BR',
+                        },
+                      })
+                    }
+                  />
+                </label>
+              ) : null}
               <label className="flow-field">
                 <span className="flow-field__label">
                   Mensagem (texto livre / fallback)
@@ -153,8 +171,10 @@ export function StepCard({
                 />
               </label>
               <p className="flow-hint">
-                Fora da janela de 24h, preencha o template aprovado na Meta. Se
-                houver template, ele é enviado no lugar do texto livre.
+                Só templates <strong>aprovados</strong> aparecem aqui. Gerencie
+                em{' '}
+                <Link to="/whatsapp/templates">Templates WA</Link>. Fora da
+                janela de 24h, o template é enviado no lugar do texto livre.
               </p>
             </>
           ) : null}
@@ -182,14 +202,14 @@ export function StepCard({
               <input
                 className="flow-field__control"
                 type="number"
-                min="1"
-                value={step.config?.minutes || 30}
+                min={1}
+                value={step.config?.minutes ?? 30}
                 onChange={(e) =>
                   onChange({
                     ...step,
                     config: {
                       ...step.config,
-                      minutes: Number(e.target.value),
+                      minutes: Number(e.target.value) || 1,
                     },
                   })
                 }
@@ -215,6 +235,24 @@ export function StepCard({
 }
 
 export function FlowBuilder({ steps, onChange }) {
+  const [approvedTemplates, setApprovedTemplates] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadTemplates() {
+      try {
+        const data = await whatsappTemplatesApi.list({ approvedOnly: true });
+        if (!cancelled) setApprovedTemplates(data.templates || []);
+      } catch {
+        if (!cancelled) setApprovedTemplates([]);
+      }
+    }
+    loadTemplates();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   function updateStep(index, patch) {
     const next = steps.map((step, i) =>
       i === index ? { ...step, ...patch } : step
@@ -251,44 +289,33 @@ export function FlowBuilder({ steps, onChange }) {
 
   return (
     <div className="flow-builder">
-      <div className="flow-builder__header">
-        <h3 className="flow-builder__title">Fluxo</h3>
-        <button
-          type="button"
-          className="flow-add-btn"
-          onClick={() => addStep()}
-        >
-          <span className="material-symbols-outlined">add</span>
-          Adicionar etapa
-        </button>
-      </div>
-
-      <div className="flow-builder__list">
-        {steps.map((step, index) => (
-          <div key={index} className="flow-builder__item">
-            <StepCard
-              step={step}
-              index={index}
-              total={steps.length}
-              onChange={(patch) => updateStep(index, patch)}
-              onRemove={() => removeStep(index)}
-              onMove={(delta) => moveStep(index, delta)}
-            />
-            {index < steps.length - 1 ? (
-              <div className="flow-divider">
-                <button
-                  type="button"
-                  className="flow-divider__btn"
-                  onClick={() => addStep(index + 1)}
-                  aria-label="Inserir etapa"
-                >
-                  <span className="material-symbols-outlined">add</span>
-                </button>
-              </div>
-            ) : null}
-          </div>
-        ))}
-      </div>
+      {steps.map((step, index) => (
+        <div key={`step-${index}`}>
+          <button
+            type="button"
+            className="flow-add-between"
+            onClick={() => addStep(index)}
+          >
+            + Passo
+          </button>
+          <StepCard
+            step={step}
+            index={index}
+            total={steps.length}
+            approvedTemplates={approvedTemplates}
+            onChange={(patch) => updateStep(index, patch)}
+            onRemove={() => removeStep(index)}
+            onMove={(delta) => moveStep(index, delta)}
+          />
+        </div>
+      ))}
+      <button
+        type="button"
+        className="flow-add-between"
+        onClick={() => addStep(null)}
+      >
+        + Passo
+      </button>
     </div>
   );
 }
