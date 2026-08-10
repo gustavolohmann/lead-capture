@@ -37,11 +37,16 @@ export function toPublicConversationContact(row, lead = null) {
 
   const raw = parseJson(lead?.raw_data);
   const social = extractSocialProfile(row.channel, raw);
+  const pageName = raw?.pageName || raw?.page_name || null;
 
   return {
     conversationId: row.id,
     leadId: row.lead_id,
-    name: lead?.name || row.lead_name || null,
+    name:
+      social.profileName ||
+      lead?.name ||
+      row.lead_name ||
+      null,
     phone: lead?.phone || row.lead_phone || null,
     email: lead?.email || row.lead_email || null,
     channel: row.channel,
@@ -55,6 +60,9 @@ export function toPublicConversationContact(row, lead = null) {
     origin: lead?.origin || null,
     leadCreatedAt: lead?.created_at || null,
     externalUserId: row.external_user_id || null,
+    pageName,
+    messengerPsid:
+      row.channel === 'MESSENGER' ? row.external_user_id || null : null,
   };
 }
 
@@ -110,16 +118,36 @@ function extractSocialProfile(channel, raw) {
     raw.profile_picture_url ||
     null;
 
+  const messengerProfile = raw.messenger_profile || null;
+  const messengerName =
+    messengerProfile?.name ||
+    [messengerProfile?.first_name, messengerProfile?.last_name]
+      .filter(Boolean)
+      .join(' ') ||
+    null;
+  const messengerPic =
+    messengerProfile?.profile_pic || messengerProfile?.profile_picture_url || null;
+
   let platform = raw.platform || null;
   if (!platform && channel === 'INSTAGRAM') platform = 'INSTAGRAM';
-  if (!platform && (raw.facebook_profile || raw.page_scoped_id)) {
+  if (!platform && channel === 'MESSENGER') platform = 'FACEBOOK';
+  if (!platform && channel === 'WHATSAPP') platform = 'WHATSAPP';
+  if (!platform && (raw.facebook_profile || raw.page_scoped_id || messengerProfile)) {
     platform = 'FACEBOOK';
   }
 
   return {
     platform,
     username: username ? String(username) : null,
-    profileName: profileName ? String(profileName) : null,
-    profilePictureUrl: profilePictureUrl ? String(profilePictureUrl) : null,
+    profileName: profileName
+      ? String(profileName)
+      : messengerName
+        ? String(messengerName)
+        : null,
+    profilePictureUrl: profilePictureUrl
+      ? String(profilePictureUrl)
+      : messengerPic
+        ? String(messengerPic)
+        : null,
   };
 }

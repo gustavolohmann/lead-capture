@@ -1,0 +1,52 @@
+Instruções detalhadas para testar pages_messaging (Lead Capture)
+
+App: https://api-production-cbf47.up.railway.app
+Página Facebook de teste: AgendaJá (Page ID 1197753540091685)
+Link Messenger: https://m.me/1197753540091685
+Instagram vinculado (opcional, outro canal): @gustavolohmannlinz
+
+Credenciais do SaaS (usuário MASTER): fornecidas no campo de credenciais de teste deste envio.
+Conta Facebook real cadastrada como Testador em Funções do App (não usar "Usuários de teste" fake).
+
+IMPORTANTE: este app NÃO usa menu persistente, botão Começar (Get Started), webView nem extensão do Messenger. O fluxo é CRM: mensagem do usuário → inbox Conversas → resposta pelo SaaS.
+
+Etapa 1 — Login no SaaS
+1. Abra https://api-production-cbf47.up.railway.app
+2. Faça login com as credenciais MASTER deste envio.
+3. Confirme que o painel Lead Capture carrega.
+
+Etapa 2 — Conexão Meta / Página
+1. Vá em "Conexão Meta".
+2. Confirme que a Página AgendaJá está conectada.
+3. Clique em "Sincronizar ativos".
+4. Confirme Página + Instagram nos ativos.
+
+Etapa 3 — Abrir Conversas
+1. No menu lateral, abra "Conversas".
+2. Deixe a tela aberta.
+
+Etapa 4 — Enviar mensagem pelo Facebook (conta Testador real)
+1. Em outro navegador/perfil, entre com a conta Facebook real marcada como Testador.
+2. Abra https://m.me/1197753540091685
+3. Envie o texto: "teste App Review pages_messaging"
+4. NÃO use usuário de teste criado no painel "Usuários de teste" (eles não recebem mensagens de Página).
+
+Etapa 5 — Ver no Lead Capture
+1. Volte ao SaaS → Conversas.
+2. Deve aparecer uma conversa no canal MESSENGER com a mensagem "teste App Review pages_messaging".
+3. No painel à direita: nome do contato (quando a Meta retornar first_name/last_name), Página AgendaJá, ID Messenger (PSID), origem messenger_inbound.
+4. Observação: telefone e email ficam "Não informado" porque a Meta não envia esses dados no webhook/API de Messenger por privacidade.
+
+Etapa 6 — Responder pelo app
+1. Selecione a conversa Messenger.
+2. Digite uma resposta (ex.: "Recebemos sua mensagem, obrigado!") e clique Enviar.
+3. Confirme no Messenger da conta Testador que a resposta da Página chegou.
+
+Etapa 7 — (Opcional) Confirmar webhook
+1. No App Dashboard → Webhooks → objeto Page, os campos leadgen e messages devem estar Assinados.
+2. Callback: https://api-production-cbf47.up.railway.app/webhooks/meta/leads
+
+Resultado esperado
+- Mensagem inbound salva em Conversas (canal MESSENGER)
+- Resposta outbound entregue no Messenger da conta Testador
+- Uso de pages_messaging via Page Access Token + webhook Page messages

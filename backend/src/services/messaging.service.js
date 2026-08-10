@@ -810,6 +810,35 @@ export const messagingService = {
 
       const content = extractInstagramInboundText(message) || '[mensagem]';
 
+      let messengerProfile = null;
+      if (!env.META_MOCK_MODE && page.access_token_encrypted) {
+        try {
+          const pageToken = decrypt(page.access_token_encrypted);
+          messengerProfile = await instagramClient.getMessengerUserProfile(
+            senderId,
+            pageToken
+          );
+        } catch (error) {
+          logger.info('Perfil Messenger não disponível', {
+            companyId,
+            senderId,
+            code: error.code || null,
+            detail: error.message,
+          });
+        }
+      }
+
+      const profileName = messengerProfile
+        ? [messengerProfile.first_name, messengerProfile.last_name]
+            .filter(Boolean)
+            .join(' ')
+            .trim() ||
+          messengerProfile.name ||
+          null
+        : null;
+      const displayName =
+        profileName || `Messenger ${senderId.slice(-6)}`;
+
       let conversation = await conversationRepository.findByExternalUserId(
         companyId,
         ConversationChannel.MESSENGER,
@@ -819,15 +848,20 @@ export const messagingService = {
       if (!conversation) {
         const lead = await leadRepository.create({
           companyId,
-          name: `Messenger ${senderId.slice(-6)}`,
+          pageId: String(pageId),
+          name: displayName,
           phone: null,
           email: null,
           source: 'MESSENGER_INBOUND',
           origin: 'messenger_inbound',
+          platform: 'fb',
           rawData: {
             event,
             pageId: String(pageId),
             pageName: page.name || null,
+            messenger_profile: messengerProfile || null,
+            page_scoped_id: senderId,
+            note: 'Telefone e email não são fornecidos pela Meta no Messenger.',
           },
         });
 
@@ -836,6 +870,41 @@ export const messagingService = {
           leadId: lead.id,
           channel: ConversationChannel.MESSENGER,
           externalUserId: senderId,
+        });
+      } else if (
+        conversation.lead_id &&
+        (profileName || messengerProfile)
+      ) {
+        const existingLead = await leadRepository.findById(
+          companyId,
+          conversation.lead_id
+        );
+        const prevRaw =
+          typeof existingLead?.raw_data === 'string'
+            ? (() => {
+                try {
+                  return JSON.parse(existingLead.raw_data);
+                } catch {
+                  return {};
+                }
+              })()
+            : existingLead?.raw_data || {};
+        const shouldRename =
+          !existingLead?.name ||
+          /^Messenger\s+\w+$/i.test(String(existingLead.name));
+        await leadRepository.updateProfile(companyId, conversation.lead_id, {
+          name: shouldRename && profileName ? profileName : existingLead?.name,
+          platform: 'fb',
+          rawData: {
+            ...prevRaw,
+            pageId: String(pageId),
+            pageName: page.name || null,
+            messenger_profile:
+              messengerProfile || prevRaw.messenger_profile || null,
+            page_scoped_id: senderId,
+            note: 'Telefone e email não são fornecidos pela Meta no Messenger.',
+            last_event: event,
+          },
         });
       }
 
@@ -859,6 +928,7 @@ export const messagingService = {
         conversationId: conversation.id,
         externalMessageId,
         pageId,
+        profileName: profileName || null,
       });
     }
 

@@ -16,9 +16,15 @@ function formatDate(value) {
 
 function socialLabel(contact) {
   const platform = String(contact?.platform || contact?.channel || '').toUpperCase();
-  if (platform === 'INSTAGRAM') return 'Instagram';
-  if (platform === 'FACEBOOK') return 'Facebook';
-  if (platform === 'WHATSAPP') return 'WhatsApp';
+  if (platform === 'INSTAGRAM' || contact?.channel === 'INSTAGRAM') return 'Instagram';
+  if (
+    platform === 'FACEBOOK' ||
+    platform === 'FB' ||
+    contact?.channel === 'MESSENGER'
+  ) {
+    return 'Facebook Messenger';
+  }
+  if (platform === 'WHATSAPP' || contact?.channel === 'WHATSAPP') return 'WhatsApp';
   return contact?.channel || 'Canal';
 }
 
@@ -78,6 +84,20 @@ export default function ConversationUserInfo({ contact, loading }) {
           <dt>Canal</dt>
           <dd>{display(contact.channel)}</dd>
         </div>
+        {contact.pageName ? (
+          <div>
+            <dt>Página</dt>
+            <dd>{display(contact.pageName)}</dd>
+          </div>
+        ) : null}
+        {contact.messengerPsid || contact.externalUserId ? (
+          <div>
+            <dt>ID Messenger (PSID)</dt>
+            <dd className="conversation-user-info__mono">
+              {display(contact.messengerPsid || contact.externalUserId)}
+            </dd>
+          </div>
+        ) : null}
         <div>
           <dt>Origem</dt>
           <dd>{display(contact.origin)}</dd>
@@ -98,6 +118,15 @@ export default function ConversationUserInfo({ contact, loading }) {
           <dt>Entrada do lead</dt>
           <dd>{formatDate(contact.leadCreatedAt)}</dd>
         </div>
+        {contact.channel === 'MESSENGER' ? (
+          <div>
+            <dt>Observação</dt>
+            <dd>
+              A Meta não envia telefone/email no Messenger. Nome e foto vêm do
+              perfil público do PSID.
+            </dd>
+          </div>
+        ) : null}
       </dl>
     </aside>
   );

@@ -101,4 +101,18 @@ export const leadRepository = {
     await db('leads').where({ company_id: companyId, id }).update({ status });
     return this.findById(companyId, id);
   },
+
+  async updateProfile(companyId, id, { name, rawData, platform } = {}) {
+    const data = {};
+    if (name != null) data.name = name;
+    if (platform != null) data.platform = platform;
+    if (rawData !== undefined) {
+      data.raw_data = rawData ? JSON.stringify(rawData) : null;
+    }
+    if (!Object.keys(data).length) {
+      return this.findById(companyId, id);
+    }
+    await db('leads').where({ company_id: companyId, id }).update(data);
+    return this.findById(companyId, id);
+  },
 };

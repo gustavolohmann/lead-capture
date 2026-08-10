@@ -28,6 +28,12 @@
   font-weight: 600;
 }
 
+.conversation-user-info__mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  word-break: break-all;
+}
+
 .conversation-user-info__avatar {
   width: 48px;
   height: 48px;

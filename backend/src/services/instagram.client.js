@@ -99,4 +99,17 @@ export const instagramClient = {
       },
     });
   },
+
+  /**
+   * Perfil do usuário no Messenger (PSID) via Page token.
+   * Telefone/email não são retornados pela Meta por privacidade.
+   */
+  async getMessengerUserProfile(psid, accessToken) {
+    return request('GET', `/${psid}`, {
+      accessToken,
+      params: {
+        fields: 'first_name,last_name,profile_pic,name',
+      },
+    });
+  },
 };
