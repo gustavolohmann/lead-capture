@@ -1,6 +1,7 @@
 export const ConversationChannel = Object.freeze({
   WHATSAPP: 'WHATSAPP',
   INSTAGRAM: 'INSTAGRAM',
+  MESSENGER: 'MESSENGER',
 });
 
 export const ConversationStatus = Object.freeze({

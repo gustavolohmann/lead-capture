@@ -8,6 +8,7 @@ import { decrypt } from '../utils/encryption.js';
 import { AppError } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
 import { LeadStatus, buildLeadOrigin, toPublicLead } from '../models/lead.model.js';
+import { messagingService } from './messaging.service.js';
 
 const PROVIDER = 'meta';
 
@@ -111,9 +112,59 @@ export const metaLeadsService = {
     let skipped = 0;
 
     for (const entry of entries) {
+      const pageId = entry?.id ? String(entry.id) : null;
+      const messaging = Array.isArray(entry?.messaging) ? entry.messaging : [];
+
+      // Facebook Messenger (pages_messaging) — mesmo callback da Page
+      if (messaging.length > 0) {
+        try {
+          const result = await messagingService.handleIncomingMessengerMessage({
+            pageId,
+            events: messaging,
+          });
+          processed += Number(result?.processed || 0);
+        } catch (error) {
+          logger.error('Falha ao processar Messenger do webhook Page', {
+            pageId,
+            code: error.code || null,
+            message: error.message,
+          });
+        }
+      }
+
       const changes = entry?.changes || [];
 
       for (const change of changes) {
+        if (change?.field === 'messages') {
+          // Alguns payloads de messages vêm em changes em vez de entry.messaging
+          const value = change.value || {};
+          const events = Array.isArray(value?.messaging)
+            ? value.messaging
+            : value?.sender
+              ? [value]
+              : [];
+          if (events.length) {
+            try {
+              const result =
+                await messagingService.handleIncomingMessengerMessage({
+                  pageId: value.recipient?.id
+                    ? String(value.recipient.id)
+                    : pageId,
+                  events,
+                });
+              processed += Number(result?.processed || 0);
+            } catch (error) {
+              logger.error('Falha ao processar messages change da Page', {
+                pageId,
+                message: error.message,
+              });
+            }
+          } else {
+            skipped += 1;
+          }
+          continue;
+        }
+
         if (change?.field !== 'leadgen') {
           skipped += 1;
           continue;

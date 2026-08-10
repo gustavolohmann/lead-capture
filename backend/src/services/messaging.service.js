@@ -23,6 +23,7 @@ import { emitMessageCreated } from '../events/message.events.js';
 
 const WA_INBOUND_PROVIDER = 'meta_whatsapp';
 const IG_INBOUND_PROVIDER = 'meta_instagram';
+const MESSENGER_INBOUND_PROVIDER = 'meta_messenger';
 
 async function getAccessToken(companyId) {
   const connection = await metaConnectionRepository.findByCompanyId(companyId);
@@ -397,23 +398,36 @@ export const messagingService = {
 
         if (lastError) throw lastError;
       }
-    } else if (conversation.channel === ConversationChannel.INSTAGRAM) {
+    } else if (
+      conversation.channel === ConversationChannel.INSTAGRAM ||
+      conversation.channel === ConversationChannel.MESSENGER
+    ) {
       const recipientId = conversation.external_user_id;
       if (!recipientId) {
-        throw new AppError('Destinatário Instagram ausente', {
+        throw new AppError('Destinatário da Página ausente', {
           statusCode: 400,
-          code: 'INSTAGRAM_RECIPIENT_MISSING',
+          code: 'PAGE_RECIPIENT_MISSING',
         });
       }
 
-      const igAccounts = await metaInstagramRepository.findByCompanyId(
-        companyId
-      );
-      if (!igAccounts.length) {
-        throw new AppError('Nenhuma conta Instagram vinculada', {
-          statusCode: 400,
-          code: 'INSTAGRAM_ACCOUNT_MISSING',
-        });
+      if (conversation.channel === ConversationChannel.INSTAGRAM) {
+        const igAccounts = await metaInstagramRepository.findByCompanyId(
+          companyId
+        );
+        if (!igAccounts.length) {
+          throw new AppError('Nenhuma conta Instagram vinculada', {
+            statusCode: 400,
+            code: 'INSTAGRAM_ACCOUNT_MISSING',
+          });
+        }
+      } else {
+        const pages = await metaPageRepository.findByCompanyId(companyId);
+        if (!pages.length) {
+          throw new AppError('Nenhuma Página Meta vinculada', {
+            statusCode: 400,
+            code: 'META_PAGE_MISSING',
+          });
+        }
       }
 
       const { pageId, pageToken } = await resolveInstagramPageSender(
@@ -722,6 +736,129 @@ export const messagingService = {
         companyId,
         conversationId: conversation.id,
         externalMessageId,
+      });
+    }
+
+    return { processed };
+  },
+
+  /**
+   * Facebook Messenger (Página) — webhook object=page, entry.messaging
+   */
+  async handleIncomingMessengerMessage({ pageId, events }) {
+    const eventList = Array.isArray(events) ? events : [];
+    if (!eventList.length) return { processed: 0 };
+
+    const page = pageId
+      ? await metaPageRepository.findByExternalPageId(String(pageId))
+      : null;
+
+    if (!page) {
+      logger.info('Webhook Messenger ignorado: Página não mapeada', {
+        pageId,
+      });
+      return { processed: 0 };
+    }
+
+    const companyId = page.company_id;
+    let processed = 0;
+
+    for (const event of eventList) {
+      const message = event?.message;
+      if (!message) continue;
+      if (message.is_echo || message.is_deleted) continue;
+
+      const externalMessageId = message.mid ? String(message.mid) : null;
+      if (!externalMessageId) continue;
+
+      const createdEvent = await webhookEventRepository.create({
+        provider: MESSENGER_INBOUND_PROVIDER,
+        eventId: externalMessageId,
+        payload: event,
+      });
+      if (!createdEvent) continue;
+
+      const existing = await messageRepository.findByExternalMessageId(
+        companyId,
+        externalMessageId
+      );
+      if (existing) {
+        await webhookEventRepository.markProcessed(
+          MESSENGER_INBOUND_PROVIDER,
+          externalMessageId
+        );
+        continue;
+      }
+
+      const senderId = event?.sender?.id ? String(event.sender.id) : null;
+      if (!senderId) {
+        await webhookEventRepository.markProcessed(
+          MESSENGER_INBOUND_PROVIDER,
+          externalMessageId
+        );
+        continue;
+      }
+
+      // Evita loop: mensagem da própria Página
+      if (pageId && senderId === String(pageId)) {
+        await webhookEventRepository.markProcessed(
+          MESSENGER_INBOUND_PROVIDER,
+          externalMessageId
+        );
+        continue;
+      }
+
+      const content = extractInstagramInboundText(message) || '[mensagem]';
+
+      let conversation = await conversationRepository.findByExternalUserId(
+        companyId,
+        ConversationChannel.MESSENGER,
+        senderId
+      );
+
+      if (!conversation) {
+        const lead = await leadRepository.create({
+          companyId,
+          name: `Messenger ${senderId.slice(-6)}`,
+          phone: null,
+          email: null,
+          source: 'MESSENGER_INBOUND',
+          origin: 'messenger_inbound',
+          rawData: {
+            event,
+            pageId: String(pageId),
+            pageName: page.name || null,
+          },
+        });
+
+        conversation = await this.createOrGetConversation({
+          companyId,
+          leadId: lead.id,
+          channel: ConversationChannel.MESSENGER,
+          externalUserId: senderId,
+        });
+      }
+
+      await this.saveMessage({
+        companyId,
+        conversationId: conversation.id,
+        direction: MessageDirection.INBOUND,
+        content,
+        externalMessageId,
+        status: MessageStatus.RECEIVED,
+      });
+
+      await webhookEventRepository.markProcessed(
+        MESSENGER_INBOUND_PROVIDER,
+        externalMessageId
+      );
+      processed += 1;
+
+      logger.info('Mensagem Messenger inbound salva', {
+        companyId,
+        conversationId: conversation.id,
+        externalMessageId,
+        pageId,
       });
     }
 

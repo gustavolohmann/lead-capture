@@ -112,15 +112,15 @@ export const metaAssetsService = {
           await metaGraphClient.subscribePageApps(
             String(page.id),
             page.access_token,
-            ['leadgen']
+            ['leadgen', 'messages']
           );
-          logger.info('Página assinada para webhook leadgen', {
+          logger.info('Página assinada para webhooks leadgen + messages', {
             companyId,
             pageId: String(page.id),
             pageName: page.name,
           });
         } catch (error) {
-          logger.error('Falha ao assinar Página para leadgen', {
+          logger.error('Falha ao assinar Página para leadgen/messages', {
             companyId,
             pageId: String(page.id),
             code: error.code || null,
