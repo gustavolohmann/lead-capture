@@ -2,6 +2,7 @@ import { Server } from 'socket.io';
 import { socketAuth } from './socket.auth.js';
 import { registerSocketHandlers } from './socket.handlers.js';
 import { logger } from '../utils/logger.js';
+import { env } from '../config/env.js';
 
 let io = null;
 
@@ -13,8 +14,8 @@ export function initSocketServer(httpServer) {
 
   io = new Server(httpServer, {
     cors: {
-      origin: true,
-      credentials: true,
+      origin: new URL(env.FRONTEND_URL).origin,
+      credentials: false,
     },
     path: '/socket.io',
   });

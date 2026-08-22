@@ -1,8 +1,10 @@
 import { api } from './api.js';
 
 export const adsBuilderApi = {
-  async createFull(payload) {
-    const { data } = await api.post('/campaigns/full', payload);
+  async createFull(payload, { idempotencyKey } = {}) {
+    const { data } = await api.post('/campaigns/full', payload, {
+      headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {},
+    });
     return data;
   },
 

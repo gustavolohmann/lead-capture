@@ -22,6 +22,7 @@ export function toPublicForm(row, fields = []) {
     id: row.id,
     name: row.name,
     description: row.description,
+    submitLabel: row.submit_label || null,
     status: row.status,
     fields: fields.map(toPublicFormField),
     createdAt: row.created_at,

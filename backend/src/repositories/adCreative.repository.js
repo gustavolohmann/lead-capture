@@ -89,4 +89,8 @@ export const adCreativeRepository = {
       .where({ company_id: companyId })
       .orderBy('created_at', 'desc');
   },
+
+  async deleteById(companyId, id) {
+    return db('ad_creatives').where({ company_id: companyId, id }).del();
+  },
 };

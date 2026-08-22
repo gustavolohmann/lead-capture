@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lead Capture — Kit App Review Meta</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --card: #1a2332;
+      --text: #e7ecf3;
+      --muted: #9aa8bc;
+      --accent: #3b82f6;
+      --danger: #f87171;
+      --ok: #34d399;
+      --border: #2a3648;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 2rem 1rem 4rem;
+    }
+    main { max-width: 820px; margin: 0 auto; }
+    h1 { font-size: 1.6rem; margin: 0 0 0.5rem; }
+    h2 { font-size: 1.2rem; margin: 2rem 0 0.75rem; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem; }
+    h3 { font-size: 1rem; margin: 1.25rem 0 0.4rem; color: var(--accent); font-family: ui-monospace, monospace; }
+    p, li { color: var(--muted); }
+    .lead { color: var(--text); font-size: 1.05rem; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.1rem;
+      margin: 0.75rem 0;
+    }
+    .danger { border-color: #7f1d1d; }
+    .ok { border-color: #065f46; }
+    .block {
+      background: #0b1220;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.85rem 1rem;
+      white-space: pre-wrap;
+      font-size: 0.92rem;
+      color: var(--text);
+      position: relative;
+    }
+    button.copy {
+      margin-top: 0.5rem;
+      background: var(--accent);
+      color: #fff;
+      border: 0;
+      border-radius: 6px;
+      padding: 0.4rem 0.8rem;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+    button.copy:hover { filter: brightness(1.1); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { color: var(--text); }
+    .tag {
+      display: inline-block;
+      font-size: 0.75rem;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      background: #1e3a5f;
+      color: #93c5fd;
+      margin-right: 0.35rem;
+    }
+    .tag.remove { background: #7f1d1d; color: #fecaca; }
+    ol.steps li { margin: 0.4rem 0; }
+    a { color: #60a5fa; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Kit App Review — Lead Capture</h1>
+    <p class="lead">
+      Use este arquivo para preencher o “Uso permitido” na Meta.
+      Não envie permissões que o produto não usa.
+    </p>
+
+    <h2>1. Remover do envio (obrigatório)</h2>
+    <div class="card danger">
+      <p style="color:var(--text);margin-top:0">No App Dashboard → Analisar / App Review → <strong>editar envio</strong>, desmarque:</p>
+      <ul>
+        <li><code>instagram_business_basic</code> — Instagram Login (não usamos)</li>
+        <li><code>instagram_business_manage_messages</code> — depende da de cima</li>
+        <li><code>instagram_manage_comments</code> — app não gerencia comentários</li>
+      </ul>
+      <p>Salve. Elas somem do “Uso permitido”.</p>
+      <p>Seu IG é: <strong>Facebook Login + Page + instagram_basic + instagram_manage_messages</strong>.</p>
+    </div>
+
+    <h2>2. Vídeos (reutilize os mesmos arquivos)</h2>
+    <div class="card ok">
+      <table>
+        <thead>
+          <tr><th>Vídeo</th><th>Conteúdo</th><th>Cobre</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="tag">A</span> Lead Ads</td>
+            <td>Lead Ads Testing Tool → Criar lead → aparece em Leads</td>
+            <td><code>leads_retrieval</code> (+ pages/ads se mostrar sync)</td>
+          </tr>
+          <tr>
+            <td><span class="tag">B</span> WhatsApp</td>
+            <td>Mensagem chega em Conversas → responder</td>
+            <td><code>whatsapp_business_messaging</code>, <code>whatsapp_business_management</code></td>
+          </tr>
+          <tr>
+            <td><span class="tag">C</span> Instagram</td>
+            <td>DM chega → responder em Conversas</td>
+            <td><code>instagram_basic</code>, <code>instagram_manage_messages</code>, <code>pages_messaging</code></td>
+          </tr>
+          <tr>
+            <td><span class="tag">D</span> Conectar + campanha</td>
+            <td>Conexão Meta → Sincronizar → wizard campanha Lead Ads</td>
+            <td>pages_*, ads_*, business_management, Marketing API Access Tier</td>
+          </tr>
+        </tbody>
+      </table>
+      <p><code>email</code> e <code>public_profile</code>: só texto, sem vídeo obrigatório.</p>
+    </div>
+
+    <h2>3. Textos prontos (copiar e colar)</h2>
+
+    <article class="card" data-copy>
+      <h3>Descrição do negócio</h3>
+      <div class="block">Somos um SaaS de captura e atendimento de leads que conecta empresas ao Meta para Lead Ads, WhatsApp e Instagram Messaging em um único painel.</div>
+      <button class="copy" type="button">Copiar</button>
+    </article>
+
+    <article class="card" data-copy>
+      <h3>leads_retrieval</h3>
+      <p>Screencast: <span class="tag">A</span></p>
+      <div class="block">Nosso app recebe leads de formulários Instant Form (Lead Ads) via webhook leadgen e usa leads_retrieval para buscar nome, e-mail, telefone e respostas na Graph API, exibindo-os na tela Leads do CRM multi-tenant da empresa.</div>
+      <button class="copy" type="button">Copiar</button>
+    </article>
+
+    <article class="card" data-copy>
+      <h3>instagram_basic</h3>
+      <p>Screencast: <span class="tag">C</span> ou <span class="tag">D</span></p>
+      <div class="block">Usamos instagram_basic (via Facebook Login + Página) para identificar a conta Instagram Business vinculada à Página do cliente e listá-la no sync de ativos, permitindo atendimento no módulo Conversas.</div>
+      <button class="copy" type="button">Copiar</button>
+    </article>
+
+    <article class="card" data-copy>
+      <h3>instagram_manage_messages</h3>
+      <p>Screencast: <span class="tag">C</span></p>
+      <div class="block">Usamos para receber DMs do Instagram (webhook) e enviar respostas pelo painel Conversas, com Page Access Token da Página vinculada.</div>
+      <button class="copy" type="button">Copiar</button>
+    </article>
+
+    <article class="card" data-copy>
+      <h3>pages_messaging</h3>
+      <p>Screencast: <span class="tag">C</span></p>
+      <div class="block">Necessária para o canal Messenger/Instagram Messaging da Página: receber e enviar mensagens no inbox unificado Conversas.</div>
+      <button class="copy" type="button">Copiar</button>
+    </article>
+
+    <article class="card" data-copy>
+      <h3>pages_show_list</h3>
+      <p>Screencast: <span class="tag">D</span></p>
+      <div class="block">Listar as Páginas Facebook que o usuário administra no OAuth/sync, para a empresa escolher a Página usada em Lead Ads e mensagens.</div>
+      <button class="copy" type="button">Copiar</button>
+    </article>
+
+    <article class="card" data-copy>
+      <h3>pages_read_engagement</h3>
+      <p>Screencast: <span class="tag">D</span> + <span class="tag">C</span></p>
+      <div class="block">Ler dados da Página necessários à integração (ativos, vínculo com Instagram e operação de mensagens/leads no contexto da Página).</div>
+      <button class="copy" type="button">Copiar</button>
+    </article>
+
+    <article class="card" data-copy>
+      <h3>pages_manage_metadata</h3>
+      <p>Screencast: <span class="tag">D</span> + <span class="tag">A</span></p>
+      <div class="block">Inscrever a Página no app (subscribed_apps) para webhooks leadgen e mensagens, para leads e conversas chegarem em tempo real no SaaS.</div>
+      <button class="copy" type="button">Copiar</button>
+    </article>
+
+    <article class="card" data-copy>
+      <h3>pages_manage_ads</h3>
+      <p>Screencast: <span class="tag">D</span></p>
+      <div class="block">Criar/gerenciar formulários Lead Ads e criativos ligados à Página no builder de campanhas do SaaS.</div>
+      <button class="copy" type="button">Copiar</button>
+    </article>
+
+    <article class="card" data-copy>
+      <h3>ads_read</h3>
+      <p>Screencast: <span class="tag">D</span></p>
+      <div class="block">Ler contas de anúncio, campanhas e status para sincronizar e exibir no painel Campanhas.</div>
+      <button class="copy" type="button">Copiar</button>
+    </article>
+
+    <article class="card" data-copy>
+      <h3>ads_management</h3>
+      <p>Screencast: <span class="tag">D</span></p>
+      <div class="block">Criar e gerenciar campanhas Lead Ads completas (campaign, ad set, form, creative, ad) pelo wizard do SaaS.</div>
+      <button class="copy" type="button">Copiar</button>
+    </article>
+
+    <article class="card" data-copy>
+      <h3>business_management</h3>
+      <p>Screencast: <span class="tag">D</span></p>
+      <div class="block">Acessar o portfólio Business do cliente para descobrir ativos (Páginas, ad accounts, WABA) no sync após o login.</div>
+      <button class="copy" type="button">Copiar</button>
+    </article>
+
+    <article class="card" data-copy>
+      <h3>whatsapp_business_messaging</h3>
+      <p>Screencast: <span class="tag">B</span></p>
+      <div class="block">Enviar e receber mensagens WhatsApp Cloud API no módulo Conversas e em automações de follow-up após lead.</div>
+      <button class="copy" type="button">Copiar</button>
+    </article>
+
+    <article class="card" data-copy>
+      <h3>whatsapp_business_management</h3>
+      <p>Screencast: <span class="tag">B</span> + <span class="tag">D</span></p>
+      <div class="block">Listar/sincronizar WABA e números do cliente e assinar o app para webhooks de mensagens WhatsApp.</div>
+      <button class="copy" type="button">Copiar</button>
+    </article>
+
+    <article class="card" data-copy>
+      <h3>Marketing API Access Tier</h3>
+      <p>Screencast: <span class="tag">D</span> — marque ligações de teste se a Meta exigir.</p>
+      <div class="block">Usamos a Marketing API em nível necessário para criar e gerenciar campanhas Lead Ads da conta de anúncios do cliente dentro do SaaS (não para revenda de dados de anúncios).</div>
+      <button class="copy" type="button">Copiar</button>
+    </article>
+
+    <article class="card" data-copy>
+      <h3>email</h3>
+      <div class="block">Obter e-mail do usuário Facebook no login para identificar a conta no SaaS e suporte.</div>
+      <button class="copy" type="button">Copiar</button>
+    </article>
+
+    <article class="card" data-copy>
+      <h3>public_profile</h3>
+      <div class="block">Obter nome/ID básico do usuário Facebook no login OAuth.</div>
+      <button class="copy" type="button">Copiar</button>
+    </article>
+
+    <h2>4. Ordem na Meta</h2>
+    <ol class="steps">
+      <li>Editar envio → remover as 3 permissões da seção 1.</li>
+      <li>Abrir esta página e colar cada texto no campo correspondente.</li>
+      <li>Anexar vídeos A–D (pode repetir o mesmo arquivo em várias permissões).</li>
+      <li>Marcar conformidade / ligações de teste onde a UI pedir.</li>
+      <li>Enviar para análise.</li>
+    </ol>
+
+    <p style="margin-top:2rem;font-size:0.85rem">
+      App ID de referência (leads capture): <code>1494790582409879</code> —
+      <a href="https://developers.facebook.com/apps/1494790582409879/app-review/" target="_blank" rel="noopener">Abrir App Review</a>
+    </p>
+  </main>
+  <script>
+    document.querySelectorAll("[data-copy]").forEach((card) => {
+      const btn = card.querySelector("button.copy");
+      const block = card.querySelector(".block");
+      btn?.addEventListener("click", async () => {
+        const text = block?.textContent?.trim() || "";
+        try {
+          await navigator.clipboard.writeText(text);
+          btn.textContent = "Copiado";
+          setTimeout(() => { btn.textContent = "Copiar"; }, 1500);
+        } catch {
+          btn.textContent = "Selecione o texto e Ctrl+C";
+        }
+      });
+    });
+  </script>
+</body>
+</html>

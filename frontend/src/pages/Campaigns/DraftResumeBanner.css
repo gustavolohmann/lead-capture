@@ -1,0 +1,35 @@
+.draft-resume-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  padding: 16px 18px;
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  background: #eff6ff;
+}
+
+.draft-resume-banner strong {
+  display: block;
+  color: #0b1c30;
+  font-size: 14px;
+}
+
+.draft-resume-banner p {
+  margin: 4px 0 0;
+  color: #434655;
+  font-size: 13px;
+}
+
+.draft-resume-banner__device {
+  color: #64748b !important;
+  font-size: 12px !important;
+}
+
+.draft-resume-banner__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}

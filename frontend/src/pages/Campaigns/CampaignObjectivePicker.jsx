@@ -1,35 +1,35 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import DraftResumeBanner from './DraftResumeBanner.jsx';
 import './CampaignObjectivePicker.css';
 
 const OBJECTIVES = [
   {
     id: 'leads',
     path: '/campaigns/new/leads',
-    title: 'Capturar Leads',
-    subtitle: 'Lead Ads',
-    description:
-      'Anúncio com formulário na Meta. Ideal para imobiliárias, clínicas, seguros e consultorias.',
+    title: 'Capturar leads',
+    description: 'Encontre pessoas interessadas no seu negócio.',
+    icon: '👥',
   },
   {
     id: 'messages',
     path: '/campaigns/new/messages',
     title: 'Receber mensagens',
-    subtitle: 'WhatsApp / Instagram Direct',
-    description:
-      'Anúncio que abre conversa no WhatsApp ou Instagram. Bom para atendimento rápido.',
+    description: 'Converse pelo WhatsApp ou Instagram.',
+    icon: '💬',
   },
   {
     id: 'traffic',
     path: '/campaigns/new/traffic',
-    title: 'Gerar tráfego',
-    subtitle: 'Website',
-    description:
-      'Leva o público para o seu site ou landing page. Foque em cliques e visitas.',
+    title: 'Levar para meu site',
+    description: 'Aumente as visitas ao seu site.',
+    icon: '🌐',
   },
 ];
 
 export default function CampaignObjectivePicker() {
   const navigate = useNavigate();
+  const [bannerKey, setBannerKey] = useState(0);
 
   return (
     <div className="objective-page">
@@ -37,8 +37,7 @@ export default function CampaignObjectivePicker() {
         <div>
           <h1 className="text-h2">Nova campanha</h1>
           <p className="text-subtitle objective-page__subtitle">
-            Escolha o objetivo. O restante do fluxo fica no seu painel — sem
-            Gerenciador de Anúncios.
+            O que você quer conseguir?
           </p>
         </div>
         <button
@@ -50,7 +49,13 @@ export default function CampaignObjectivePicker() {
         </button>
       </header>
 
-      <div className="objective-grid" role="radiogroup" aria-label="Objetivo da campanha">
+      <DraftResumeBanner
+        key={bannerKey}
+        onContinue={() => navigate('/campaigns/new/leads')}
+        onDiscard={() => setBannerKey((k) => k + 1)}
+      />
+
+      <div className="objective-grid" aria-label="Objetivo da campanha">
         {OBJECTIVES.map((item) => (
           <button
             key={item.id}
@@ -58,9 +63,10 @@ export default function CampaignObjectivePicker() {
             className="objective-card"
             onClick={() => navigate(item.path)}
           >
-            <span className="objective-card__radio" aria-hidden="true" />
+            <span className="objective-card__icon" aria-hidden>
+              {item.icon}
+            </span>
             <span className="objective-card__title">{item.title}</span>
-            <span className="objective-card__subtitle">{item.subtitle}</span>
             <span className="objective-card__desc">{item.description}</span>
           </button>
         ))}

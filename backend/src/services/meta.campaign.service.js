@@ -3,6 +3,9 @@ import { metaMarketingClient } from './meta.marketing.client.js';
 import { metaConnectionRepository } from '../repositories/meta.connection.repository.js';
 import { metaAdAccountRepository } from '../repositories/meta.adAccount.repository.js';
 import { campaignRepository } from '../repositories/campaign.repository.js';
+import { adRepository } from '../repositories/ad.repository.js';
+import { adSetRepository } from '../repositories/adSet.repository.js';
+import { adCreativeRepository } from '../repositories/adCreative.repository.js';
 import { decrypt } from '../utils/encryption.js';
 import { AppError } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
@@ -13,6 +16,8 @@ import {
   META_OBJECTIVE_BY_PRODUCT,
   toPublicCampaign,
 } from '../models/campaign.model.js';
+import { toPublicAdSet } from '../models/adSet.model.js';
+import { toPublicAd } from '../models/ad.model.js';
 
 /** Objetivo de produto (SaaS) para create simples. */
 const PRODUCT_OBJECTIVE = CampaignObjective.LEAD_GENERATION;
@@ -156,11 +161,91 @@ async function setCampaignStatus(companyId, id, status) {
   return toPublicCampaign(updated);
 }
 
+async function setAdStatus(companyId, campaignId, adId, status) {
+  await assertCompany(companyId);
+  const campaign = await campaignRepository.findById(companyId, campaignId);
+  if (!campaign) {
+    throw new AppError('Campanha não encontrada', {
+      statusCode: 404,
+      code: 'CAMPAIGN_NOT_FOUND',
+    });
+  }
+
+  const ad = await adRepository.findByCampaignAndId(companyId, campaignId, adId);
+  if (!ad) {
+    throw new AppError('Anúncio não encontrado nesta campanha', {
+      statusCode: 404,
+      code: 'AD_NOT_FOUND',
+    });
+  }
+  if (!ad.meta_ad_id) {
+    throw new AppError('Anúncio sem ID Meta', {
+      statusCode: 400,
+      code: 'AD_META_ID_MISSING',
+    });
+  }
+
+  const { accessToken } = await getConnectionToken(companyId);
+  await metaMarketingClient.updateAdStatus(ad.meta_ad_id, accessToken, status);
+  return toPublicAd(await adRepository.updateStatus(companyId, ad.id, status));
+}
+
+function toCampaignDetails(hierarchy) {
+  const adsByAdSet = new Map();
+  const ads = hierarchy.ads.map((row) => {
+    const ad = {
+      ...toPublicAd(row),
+      metaAdsetId: row.meta_adset_id || null,
+      creative: row.creative_id
+        ? {
+            id: row.creative_id,
+            metaCreativeId: row.meta_creative_id || null,
+            name: row.creative_name || null,
+            title: row.creative_title || null,
+            body: row.creative_body || null,
+            imageHash: row.creative_image_hash || null,
+            ctaType: row.creative_cta_type || null,
+            status: row.creative_status || null,
+          }
+        : null,
+    };
+    const list = adsByAdSet.get(Number(row.ad_set_id)) || [];
+    list.push(ad);
+    adsByAdSet.set(Number(row.ad_set_id), list);
+    return ad;
+  });
+
+  return {
+    ...toPublicCampaign(hierarchy.campaign),
+    adCount: ads.length,
+    ads,
+    adSets: hierarchy.adSets.map((row) => ({
+      ...toPublicAdSet(row),
+      ads: adsByAdSet.get(Number(row.id)) || [],
+    })),
+  };
+}
+
 export const metaCampaignService = {
   async listCampaigns(companyId) {
     await assertCompany(companyId);
     const rows = await campaignRepository.findByCompanyId(companyId);
-    return rows.map(toPublicCampaign);
+    return rows.map((row) => ({
+      ...toPublicCampaign(row),
+      adCount: Number(row.ad_count) || 0,
+    }));
+  },
+
+  async getCampaignDetails(companyId, id) {
+    await assertCompany(companyId);
+    const hierarchy = await campaignRepository.findHierarchy(companyId, id);
+    if (!hierarchy) {
+      throw new AppError('Campanha não encontrada', {
+        statusCode: 404,
+        code: 'CAMPAIGN_NOT_FOUND',
+      });
+    }
+    return toCampaignDetails(hierarchy);
   },
 
   async createCampaign(companyId, { adAccountId, name, dailyBudget }) {
@@ -241,6 +326,14 @@ export const metaCampaignService = {
     return setCampaignStatus(companyId, id, CampaignStatus.ACTIVE);
   },
 
+  async pauseAd(companyId, campaignId, adId) {
+    return setAdStatus(companyId, campaignId, adId, CampaignStatus.PAUSED);
+  },
+
+  async activateAd(companyId, campaignId, adId) {
+    return setAdStatus(companyId, campaignId, adId, CampaignStatus.ACTIVE);
+  },
+
   async syncCampaigns(companyId, adAccountId) {
     await assertCompany(companyId);
     const accountId = await assertAdAccountBelongsToCompany(
@@ -255,6 +348,7 @@ export const metaCampaignService = {
     );
     const items = response?.data || [];
     let synced = 0;
+    const campaignsByMetaId = new Map();
 
     for (const item of items) {
       if (!item?.id) continue;
@@ -268,7 +362,7 @@ export const metaCampaignService = {
         continue;
       }
 
-      await campaignRepository.upsert({
+      const localCampaign = await campaignRepository.upsert({
         companyId,
         adAccountId: accountId,
         campaignId: String(item.id),
@@ -277,15 +371,83 @@ export const metaCampaignService = {
         status: item.status || CampaignStatus.PAUSED,
         dailyBudget: fromMetaBudgetCents(item.daily_budget),
       });
+      campaignsByMetaId.set(String(item.id), localCampaign);
       synced += 1;
+    }
+
+    const [metaAdSets, metaAds] = await Promise.all([
+      metaMarketingClient.listAdSets(accountId, accessToken, {
+        fields:
+          'id,name,campaign_id,status,effective_status,daily_budget,targeting',
+      }),
+      metaMarketingClient.listAds(accountId, accessToken),
+    ]);
+
+    const adSetsByMetaId = new Map();
+    let syncedAdSets = 0;
+    for (const item of metaAdSets) {
+      const localCampaign = campaignsByMetaId.get(String(item.campaign_id));
+      if (!localCampaign || !item?.id) continue;
+      const localAdSet = await adSetRepository.upsertByMetaAdsetId({
+        companyId,
+        campaignId: localCampaign.id,
+        metaAdsetId: String(item.id),
+        name: item.name || `Conjunto ${item.id}`,
+        dailyBudget: fromMetaBudgetCents(item.daily_budget),
+        targeting: item.targeting || null,
+        status: item.status || CampaignStatus.PAUSED,
+      });
+      adSetsByMetaId.set(String(item.id), localAdSet);
+      syncedAdSets += 1;
+    }
+
+    let syncedCreatives = 0;
+    let syncedAds = 0;
+    for (const item of metaAds) {
+      const localAdSet = adSetsByMetaId.get(String(item.adset_id));
+      const metaCreative = item.creative;
+      const metaCreativeId =
+        typeof metaCreative === 'object' ? metaCreative?.id : metaCreative;
+      if (!localAdSet || !item?.id || !metaCreativeId) continue;
+
+      const creative = await adCreativeRepository.upsertByMetaCreativeId({
+        companyId,
+        adAccountId: accountId,
+        metaCreativeId: String(metaCreativeId),
+        name: metaCreative?.name || `Criativo ${metaCreativeId}`,
+        title: metaCreative?.title || null,
+        body: metaCreative?.body || null,
+        imageHash: metaCreative?.image_hash || null,
+        ctaType: metaCreative?.call_to_action_type || null,
+        status: 'ACTIVE',
+      });
+      syncedCreatives += 1;
+
+      await adRepository.upsertByMetaAdId({
+        companyId,
+        adSetId: localAdSet.id,
+        creativeId: creative.id,
+        metaAdId: String(item.id),
+        name: item.name || `Anúncio ${item.id}`,
+        status: item.status || CampaignStatus.PAUSED,
+      });
+      syncedAds += 1;
     }
 
     logger.info('Sync de campanhas concluído', {
       companyId,
       adAccountId: accountId,
       synced,
+      syncedAdSets,
+      syncedCreatives,
+      syncedAds,
     });
 
-    return { synced };
+    return {
+      synced,
+      adSets: syncedAdSets,
+      creatives: syncedCreatives,
+      ads: syncedAds,
+    };
   },
 };

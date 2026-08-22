@@ -2,6 +2,12 @@ import { useEffect, useState } from 'react';
 import { automationsApi } from '../../services/automations.api.js';
 import './Automations.css';
 
+const CHANNEL_LABEL = {
+  AUTO: 'Automático',
+  WHATSAPP: 'WhatsApp',
+  INSTAGRAM: 'Instagram',
+};
+
 const EMPTY_FORM = {
   name: '',
   channel: 'AUTO',
@@ -71,18 +77,20 @@ export default function Automations() {
 
   return (
     <div className="automations-page">
-      <header className="automations-page__header">
-        <h1 className="text-h2">Automações</h1>
-        <p className="text-subtitle automations-page__subtitle">
-          Follow-up automático no trigger NEW_LEAD.
-        </p>
+      <header className="page-header automations-page__header">
+        <div className="page-header__copy">
+          <h1 className="page-header__title">Automações</h1>
+          <p className="page-header__subtitle">
+            Follow-up automático quando um lead novo chega.
+          </p>
+        </div>
       </header>
 
       <section className="card automations-page__card">
         <h2 className="automations-page__section">Nova automação</h2>
         <form className="automations-form" onSubmit={handleCreate}>
-          <label className="field">
-            <span className="field-label">Nome</span>
+          <label className="field automations-form__name">
+            <span className="field-label">Nome da automação</span>
             <input
               className="input"
               value={form.name}
@@ -92,34 +100,38 @@ export default function Automations() {
             />
           </label>
 
-          <label className="field">
-            <span className="field-label">Canal</span>
-            <select
-              className="input"
-              value={form.channel}
-              onChange={(e) =>
-                setForm((c) => ({ ...c, channel: e.target.value }))
-              }
-            >
-              <option value="AUTO">AUTO (WhatsApp → Instagram → skip)</option>
-              <option value="WHATSAPP">WhatsApp</option>
-              <option value="INSTAGRAM">Instagram</option>
-            </select>
-          </label>
+          <div className="automations-form__row">
+            <label className="field">
+              <span className="field-label">Canal de envio</span>
+              <select
+                className="input"
+                value={form.channel}
+                onChange={(e) =>
+                  setForm((c) => ({ ...c, channel: e.target.value }))
+                }
+              >
+                <option value="AUTO">
+                  Automático (WhatsApp, depois Instagram)
+                </option>
+                <option value="WHATSAPP">WhatsApp</option>
+                <option value="INSTAGRAM">Instagram</option>
+              </select>
+            </label>
 
-          <label className="field">
-            <span className="field-label">Delay (minutos)</span>
-            <input
-              className="input"
-              type="number"
-              min="0"
-              value={form.delayMinutes}
-              onChange={(e) =>
-                setForm((c) => ({ ...c, delayMinutes: e.target.value }))
-              }
-              required
-            />
-          </label>
+            <label className="field">
+              <span className="field-label">Enviar depois de (minutos)</span>
+              <input
+                className="input"
+                type="number"
+                min="0"
+                value={form.delayMinutes}
+                onChange={(e) =>
+                  setForm((c) => ({ ...c, delayMinutes: e.target.value }))
+                }
+                required
+              />
+            </label>
+          </div>
 
           <label className="field">
             <span className="field-label">Mensagem</span>
@@ -132,26 +144,34 @@ export default function Automations() {
               required
               rows={4}
             />
+            <span className="automations-hint">
+              Variáveis: {'{{name}}'}, {'{{email}}'}, {'{{phone}}'} · Disparo:
+              lead novo
+            </span>
           </label>
 
-          <p className="automations-hint">
-            Variáveis: {'{{name}}'}, {'{{email}}'}, {'{{phone}}'} · Trigger: NEW_LEAD
-          </p>
-
-          <button className="btn btn-primary" type="submit" disabled={saving}>
-            {saving ? 'Salvando...' : 'Criar automação'}
-          </button>
+          <div className="automations-form__footer">
+            <button className="btn btn-primary" type="submit" disabled={saving}>
+              {saving ? 'Salvando...' : 'Criar automação'}
+            </button>
+          </div>
         </form>
       </section>
 
       <section className="card automations-page__card">
-        <h2 className="automations-page__section">Lista</h2>
-        {loading ? <p className="text-body">Carregando...</p> : null}
+        <h2 className="automations-page__section">Automações ativas</h2>
+        {loading ? <p className="text-body">Carregando automações...</p> : null}
         {error ? <p className="automations-page__error">{error}</p> : null}
         {info ? <p className="automations-page__info">{info}</p> : null}
 
         {!loading && items.length === 0 ? (
-          <p className="text-body automations-empty">Nenhuma automação.</p>
+          <div className="ui-empty automations-empty">
+            <p className="ui-empty__title">Nenhuma automação ativa</p>
+            <p className="ui-empty__text">
+              Crie a primeira acima para enviar follow-up automático quando um
+              lead novo chegar.
+            </p>
+          </div>
         ) : null}
 
         {items.length > 0 ? (
@@ -160,18 +180,26 @@ export default function Automations() {
               <tr>
                 <th>Nome</th>
                 <th>Canal</th>
-                <th>Delay</th>
+                <th>Atraso</th>
                 <th>Status</th>
-                <th>Ação</th>
+                <th>Ações</th>
               </tr>
             </thead>
             <tbody>
               {items.map((item) => (
                 <tr key={item.id}>
-                  <td>{item.name}</td>
-                  <td>{item.channel}</td>
+                  <td>
+                    <strong>{item.name}</strong>
+                  </td>
+                  <td>{CHANNEL_LABEL[item.channel] || item.channel}</td>
                   <td>{item.delayMinutes} min</td>
-                  <td>{item.active ? 'ATIVA' : 'INATIVA'}</td>
+                  <td>
+                    <span
+                      className={`badge ${item.active ? 'badge-success' : 'badge-neutral'}`}
+                    >
+                      {item.active ? 'Ativa' : 'Inativa'}
+                    </span>
+                  </td>
                   <td>
                     <button
                       type="button"

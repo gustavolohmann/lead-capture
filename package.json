@@ -6,17 +6,21 @@
   "scripts": {
     "migrate": "node scripts/migrate.js",
     "seed": "node scripts/seed.js",
+    "seed:local-ad-account": "node scripts/seed-local-ad-account.js",
+    "seed:campaign-hierarchy-demo": "node scripts/seed-campaign-hierarchy-demo.js",
     "seed:insurance-lead": "node scripts/seed-insurance-lead.js",
+    "seed:leads": "node scripts/seed-leads.js",
     "backfill:lead-origin": "node scripts/backfill-lead-origin.js",
     "dev:backend": "npm run dev --prefix backend",
     "dev:frontend": "npm run dev --prefix frontend",
     "install:all": "npm install && npm install --prefix backend && npm install --prefix frontend",
     "test:api": "vitest run --config vitest.e2e.config.js",
+    "test:unit": "vitest run --config vitest.unit.config.js",
     "test:e2e": "playwright test",
-    "test:all": "npm run test:api && npm run test:e2e"
+    "test:all": "npm run test:unit && npm run test:api && npm run test:e2e"
   },
   "dependencies": {
-    "bcrypt": "^5.1.1",
+    "bcrypt": "^6.0.0",
     "dotenv": "^16.4.7",
     "knex": "^3.1.0",
     "mysql2": "^3.12.0"

@@ -28,6 +28,7 @@ export async function resetTestData() {
 
   await db.raw('SET FOREIGN_KEY_CHECKS = 0');
   const tables = [
+    'campaign_publications',
     'notifications',
     'messages',
     'conversations',

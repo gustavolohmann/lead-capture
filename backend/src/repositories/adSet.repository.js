@@ -32,6 +32,16 @@ export const adSetRepository = {
     return db('ad_sets').where({ company_id: companyId, id }).first();
   },
 
+  async findByCampaignAndId(companyId, campaignId, id) {
+    return db('ad_sets')
+      .where({
+        company_id: companyId,
+        campaign_id: campaignId,
+        id,
+      })
+      .first();
+  },
+
   async findByMetaAdsetId(companyId, metaAdsetId) {
     if (!metaAdsetId) return null;
     return db('ad_sets')

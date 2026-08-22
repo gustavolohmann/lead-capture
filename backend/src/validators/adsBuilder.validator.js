@@ -57,6 +57,43 @@ const creativeSchema = z
   })
   .passthrough();
 
+const adSchema = z
+  .object({
+    clientKey: z.string().trim().min(1).max(100).optional(),
+    name: z.string().trim().min(1).max(255).optional(),
+    messageChannel: z.enum(['WHATSAPP', 'INSTAGRAM']).optional(),
+    creative: creativeSchema,
+  })
+  .passthrough();
+
+export const addCampaignAdSchema = z
+  .object({
+    adSetId: z.coerce.number().int().positive(),
+    pageId: z.string().trim().min(1, 'pageId é obrigatório'),
+    name: z.string().trim().min(1).max(255),
+    leadFormId: z.coerce.number().int().positive().optional(),
+    whatsappPhoneNumber: z.string().trim().min(8).max(40).optional(),
+    creative: creativeSchema.extend({
+      title: z.string().trim().min(1).max(255),
+      text: z.string().trim().min(1).max(5000).optional(),
+      body: z.string().trim().min(1).max(5000).optional(),
+      description: z.string().trim().max(500).optional(),
+      imageBase64: z.string().min(32, 'Imagem do criativo é obrigatória'),
+      imageName: z.string().trim().min(1).max(255).optional(),
+      linkUrl: z.string().url('URL de destino inválida').optional(),
+      pageWelcomeMessage: z.string().trim().max(300).optional(),
+    }),
+  })
+  .superRefine((data, ctx) => {
+    if (!data.creative.text && !data.creative.body) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Texto principal é obrigatório',
+        path: ['creative', 'text'],
+      });
+    }
+  });
+
 export const createFullCampaignSchema = z
   .object({
     objective: z
@@ -92,7 +129,9 @@ export const createFullCampaignSchema = z
       .passthrough()
       .optional(),
     audience: audienceSchema,
-    creative: creativeSchema,
+    // `creative` permanece aceito para compatibilidade com os clientes 1:1.
+    creative: creativeSchema.optional(),
+    ads: z.array(adSchema).min(1, 'Informe ao menos um anúncio').optional(),
   })
   .superRefine((data, ctx) => {
     if (data.budget == null && data.dailyBudget == null) {
@@ -103,14 +142,32 @@ export const createFullCampaignSchema = z
       });
     }
 
-    const image = data.creative?.imageBase64 || data.creative?.image;
-    if (!image) {
+    const adInputs = data.ads?.length
+      ? data.ads.map((ad) => ({ creative: ad.creative, ad }))
+      : data.creative
+        ? [{ creative: data.creative, ad: null }]
+        : [];
+
+    if (adInputs.length === 0) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'Imagem do criativo é obrigatória',
-        path: ['creative', 'imageBase64'],
+        message: 'Informe creative ou ads',
+        path: ['ads'],
       });
     }
+
+    adInputs.forEach(({ creative }, index) => {
+      const image = creative?.imageBase64 || creative?.image;
+      if (!image) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Imagem do criativo é obrigatória',
+          path: data.ads?.length
+            ? ['ads', index, 'creative', 'imageBase64']
+            : ['creative', 'imageBase64'],
+        });
+      }
+    });
 
     if (data.objective === CampaignObjective.LEAD_GENERATION) {
       if (!data.form?.privacyPolicyUrl) {
@@ -138,16 +195,39 @@ export const createFullCampaignSchema = z
           path: ['whatsappPhoneNumber'],
         });
       }
+
+      if (data.ads?.length) {
+        data.ads.forEach((ad, index) => {
+          if (channels.length > 1 && !ad.messageChannel) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message:
+                'messageChannel é obrigatório em cada anúncio quando há mais de um canal',
+              path: ['ads', index, 'messageChannel'],
+            });
+          }
+          if (ad.messageChannel && !channels.includes(ad.messageChannel)) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: 'O canal do anúncio não está selecionado na campanha',
+              path: ['ads', index, 'messageChannel'],
+            });
+          }
+        });
+      }
     }
 
     if (data.objective === CampaignObjective.TRAFFIC) {
-      const link = data.creative?.linkUrl;
-      if (!link) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'linkUrl do site é obrigatório para tráfego',
-          path: ['creative', 'linkUrl'],
-        });
-      }
+      adInputs.forEach(({ creative }, index) => {
+        if (!creative?.linkUrl) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'linkUrl do site é obrigatório para tráfego',
+            path: data.ads?.length
+              ? ['ads', index, 'creative', 'linkUrl']
+              : ['creative', 'linkUrl'],
+          });
+        }
+      });
     }
   });

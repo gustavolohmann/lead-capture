@@ -2,11 +2,18 @@ import { db } from '../config/database.js';
 import { FormStatus } from '../models/form.model.js';
 
 export const formRepository = {
-  async create({ companyId, name, description, status = FormStatus.ACTIVE }) {
+  async create({
+    companyId,
+    name,
+    description,
+    submitLabel,
+    status = FormStatus.ACTIVE,
+  }) {
     const [id] = await db('forms').insert({
       company_id: companyId,
       name,
       description: description ?? null,
+      submit_label: submitLabel ?? null,
       status,
     });
     return this.findById(companyId, id);
@@ -30,6 +37,7 @@ export const formRepository = {
     const patch = {};
     if (data.name !== undefined) patch.name = data.name;
     if (data.description !== undefined) patch.description = data.description;
+    if (data.submitLabel !== undefined) patch.submit_label = data.submitLabel;
     if (data.status !== undefined) patch.status = data.status;
 
     if (Object.keys(patch).length === 0) {

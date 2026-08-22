@@ -7,6 +7,7 @@ import { env } from './config/env.js';
 import { routes } from './routes/index.js';
 import { webhooksRoutes } from './routes/webhooks.routes.js';
 import { metaController } from './controllers/meta.controller.js';
+import { calendarController } from './controllers/scheduling.controller.js';
 import { oauthRateLimiter } from './middlewares/rateLimit.middleware.js';
 import {
   errorHandler,
@@ -17,6 +18,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export function createApp() {
   const app = express();
+  const frontendOrigin = new URL(env.FRONTEND_URL).origin;
 
   // Railway / proxies: necessário para rate-limit e X-Forwarded-For
   app.set('trust proxy', 1);
@@ -26,7 +28,12 @@ export function createApp() {
       contentSecurityPolicy: false,
     })
   );
-  app.use(cors({ origin: true, credentials: true }));
+  app.use(
+    cors({
+      origin: frontendOrigin,
+      credentials: false,
+    })
+  );
 
   // Webhook Meta: preserva rawBody para HMAC
   app.use(
@@ -48,6 +55,13 @@ export function createApp() {
   // OAuth callback permanece na URL cadastrada na Meta (sem /api)
   app.get('/meta/callback', oauthRateLimiter, metaController.callback);
 
+  // Google Calendar OAuth callback (URL cadastrada no Google Cloud Console)
+  app.get(
+    '/calendar/google/callback',
+    oauthRateLimiter,
+    calendarController.callbackGoogle
+  );
+
   // APIs da aplicação sob /api — evita conflito com rotas do SPA
   // (/campaigns, /leads, /forms, /conversations, /automations, /meta)
   app.use('/api', routes);
@@ -60,7 +74,8 @@ export function createApp() {
         req.path.startsWith('/api') ||
         req.path.startsWith('/webhooks') ||
         req.path === '/health' ||
-        req.path === '/meta/callback'
+        req.path === '/meta/callback' ||
+        req.path === '/calendar/google/callback'
       ) {
         return next();
       }

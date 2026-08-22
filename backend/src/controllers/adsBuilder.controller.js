@@ -29,7 +29,11 @@ export const adsBuilderController = {
       const companyId = contextService.requireCompanyId(req.context);
       const result = await metaAdsBuilderService.createFullCampaign(
         companyId,
-        req.body
+        req.body,
+        {
+          idempotencyKey:
+            req.get('Idempotency-Key') || req.get('X-Idempotency-Key') || null,
+        }
       );
       return res.status(201).json({ success: true, ...result });
     } catch (error) {

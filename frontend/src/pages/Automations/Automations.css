@@ -1,14 +1,9 @@
-.automations-page__header {
-  margin-bottom: var(--space-xl);
+.automations-page {
+  width: 100%;
 }
 
-.automations-page__subtitle {
-  margin-top: var(--space-sm);
-  color: var(--brand-slate);
-}
-
+/* O card acompanha a área útil; quem limita a largura é o formulário. */
 .automations-page__card {
-  max-width: 860px;
   padding: var(--space-xl);
   margin-bottom: var(--space-xl);
 }
@@ -22,7 +17,25 @@
 .automations-form {
   display: grid;
   gap: var(--space-md);
-  max-width: 520px;
+  max-width: 680px;
+}
+
+.automations-form__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 200px;
+  gap: var(--space-md);
+}
+
+.automations-form__footer {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: var(--space-xs);
+}
+
+@media (max-width: 599.98px) {
+  .automations-form__row {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .automations-textarea {
@@ -33,9 +46,11 @@
 }
 
 .automations-hint {
-  margin: 0;
-  color: var(--brand-slate);
+  display: block;
+  margin: var(--space-xs) 0 0;
+  color: var(--ink-muted);
   font-size: var(--text-caption);
+  line-height: var(--text-caption-lh);
 }
 
 .automations-page__error {
@@ -47,7 +62,7 @@
 }
 
 .automations-empty {
-  color: var(--brand-slate);
+  padding: var(--space-lg) 0 0;
 }
 
 .automations-table {
@@ -58,13 +73,45 @@
 .automations-table th,
 .automations-table td {
   text-align: left;
-  padding: 12px 10px;
-  border-bottom: 1px solid var(--brand-border);
+  padding: var(--space-md) 10px;
+  border-bottom: 1px solid var(--border);
 }
 
 .automations-table th {
-  background: var(--brand-gray);
-  font-size: var(--text-label);
+  background: transparent;
+  font-size: var(--text-caption);
+  line-height: var(--text-caption-lh);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.automations-table tbody tr:hover td {
+  background: var(--surface-container-low);
+}
+
+/* Nome cresce; canal, atraso, status e ações ficam compactos. */
+@media (min-width: 900px) {
+  .automations-table th:nth-child(2),
+  .automations-table td:nth-child(2) {
+    width: 160px;
+  }
+
+  .automations-table th:nth-child(3),
+  .automations-table td:nth-child(3) {
+    width: 120px;
+  }
+
+  .automations-table th:nth-child(4),
+  .automations-table td:nth-child(4) {
+    width: 120px;
+  }
+
+  .automations-table th:nth-child(5),
+  .automations-table td:nth-child(5) {
+    width: 140px;
+  }
 }
 
 .automations-table .btn {

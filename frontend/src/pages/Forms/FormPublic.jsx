@@ -80,6 +80,7 @@ export default function FormPublic() {
     return (
       <div className="form-public">
         <div className="form-public__card">
+          <p className="form-public__brand">Lead Capture</p>
           <h1 className="form-public__title">Recebemos seus dados</h1>
           <p className="form-public__subtitle">
             Obrigado! Em breve entraremos em contato.
@@ -89,9 +90,12 @@ export default function FormPublic() {
     );
   }
 
+  const ctaLabel = form.submitLabel || 'Enviar';
+
   return (
     <div className="form-public">
       <div className="form-public__card">
+        <p className="form-public__brand">Lead Capture</p>
         <header className="form-public__header">
           <h1 className="form-public__title">{form.name}</h1>
           {form.description ? (
@@ -201,11 +205,18 @@ export default function FormPublic() {
             </label>
           ))}
 
-          {error ? <p className="forms-page__error">{error}</p> : null}
+          {error ? <p className="form-public__error">{error}</p> : null}
 
           <button className="btn btn-primary" type="submit" disabled={submitting}>
-            {submitting ? 'Enviando...' : 'Enviar'}
+            {submitting ? 'Enviando...' : ctaLabel}
           </button>
+
+          <p className="form-public__secure">
+            <span className="material-symbols-outlined" aria-hidden="true">
+              lock
+            </span>
+            Seus dados estão seguros.
+          </p>
         </form>
       </div>
     </div>

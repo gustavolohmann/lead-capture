@@ -1,21 +1,5 @@
-.tpl-page__header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-.tpl-page__subtitle {
-  margin-top: 8px;
-  max-width: 40rem;
-  color: #434655;
-}
-
-.tpl-page__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+.tpl-page {
+  width: 100%;
 }
 
 .tpl-page__error {
@@ -38,21 +22,32 @@
   font-size: 1.05rem;
 }
 
+/* Campos curtos não devem atravessar a largura da tabela. */
 .tpl-builder__form {
   display: grid;
   gap: 14px;
+  max-width: 720px;
 }
 
 .tpl-builder__grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr) 160px 180px;
   gap: 12px;
+}
+
+.tpl-builder__textarea {
+  height: auto;
+  min-height: 96px;
+  padding-top: 10px;
+  resize: vertical;
 }
 
 .tpl-builder__submit {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  align-items: center;
+  gap: var(--space-md);
+  padding-top: var(--space-xs);
 }
 
 .tpl-preview {
@@ -125,14 +120,55 @@
 .tpl-table th,
 .tpl-table td {
   text-align: left;
-  padding: 12px 10px;
-  border-bottom: 1px solid #e5e7eb;
+  padding: var(--space-md) 10px;
+  border-bottom: 1px solid var(--border);
   vertical-align: top;
-  font-size: 14px;
+  font-size: var(--text-body);
+}
+
+.tpl-table th {
+  font-size: var(--text-caption);
+  line-height: var(--text-caption-lh);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.tpl-table tbody tr:hover td {
+  background: var(--surface-container-low);
+}
+
+/* Nome e corpo crescem; colunas previsíveis ficam compactas. */
+@media (min-width: 900px) {
+  .tpl-table th:nth-child(2),
+  .tpl-table td:nth-child(2) {
+    width: 150px;
+  }
+
+  .tpl-table th:nth-child(3),
+  .tpl-table td:nth-child(3) {
+    width: 140px;
+  }
+
+  .tpl-table th:nth-child(4),
+  .tpl-table td:nth-child(4) {
+    width: 120px;
+  }
+
+  .tpl-table th:nth-child(5),
+  .tpl-table td:nth-child(5) {
+    width: 22%;
+    min-width: 220px;
+  }
+
+  .tpl-table th:nth-child(6),
+  .tpl-table td:nth-child(6) {
+    width: 28%;
+  }
 }
 
 .tpl-table__body {
-  max-width: 280px;
   color: #4b5563;
   font-size: 13px;
 }
@@ -177,10 +213,6 @@
 }
 
 @media (max-width: 900px) {
-  .tpl-page__header {
-    flex-direction: column;
-  }
-
   .tpl-builder__grid {
     grid-template-columns: 1fr;
   }

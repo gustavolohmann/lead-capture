@@ -15,65 +15,62 @@
 .objective-grid {
   display: grid;
   gap: 14px;
-  max-width: 720px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-width: 960px;
 }
 
 .objective-card {
+  position: relative;
   display: grid;
-  grid-template-columns: auto 1fr;
-  grid-template-areas:
-    'radio title'
-    'radio subtitle'
-    'radio desc';
-  column-gap: 14px;
-  row-gap: 4px;
+  gap: 8px;
   text-align: left;
-  padding: 18px 20px;
+  min-height: 168px;
+  padding: 20px;
   border: 1px solid #c3c6d7;
-  border-radius: 12px;
+  border-radius: 16px;
   background: #fff;
   cursor: pointer;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 
 .objective-card:hover {
   border-color: #2563eb;
-  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.08);
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.1);
+  transform: translateY(-1px);
 }
 
-.objective-card__radio {
-  grid-area: radio;
-  width: 18px;
-  height: 18px;
-  margin-top: 3px;
-  border: 2px solid #94a3b8;
-  border-radius: 50%;
+.objective-card.is-selected {
+  background: rgba(37, 99, 235, 0.04);
 }
 
-.objective-card:hover .objective-card__radio {
-  border-color: #2563eb;
+.objective-card__icon {
+  font-size: 28px;
+  line-height: 1;
 }
 
 .objective-card__title {
-  grid-area: title;
   font-size: 17px;
   font-weight: 700;
   color: #0b1c30;
 }
 
-.objective-card__subtitle {
-  grid-area: subtitle;
-  font-size: 13px;
-  font-weight: 600;
-  color: #2563eb;
-}
-
 .objective-card__desc {
-  grid-area: desc;
   font-size: 14px;
   line-height: 1.45;
   color: #5b6475;
-  margin-top: 4px;
+}
+
+.objective-page__footer {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+  max-width: 960px;
+}
+
+@media (max-width: 900px) {
+  .objective-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 720px) {

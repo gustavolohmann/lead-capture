@@ -39,7 +39,7 @@ export function errorHandler(err, _req, res, _next) {
 
   return res.status(500).json({
     success: false,
-    message: err.message || 'Erro interno do servidor',
+    message: 'Erro interno do servidor',
     code: 'INTERNAL_SERVER_ERROR',
   });
 }

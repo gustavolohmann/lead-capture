@@ -26,7 +26,7 @@
   font-size: 15px;
   line-height: 22px;
   color: #0b1c30;
-  background: #f8fafc;
+  background: #f4f6fb;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -98,7 +98,7 @@
   width: 48px;
   height: 48px;
   border-radius: 6px;
-  background: #2563eb;
+  background: #004ac6;
   color: #fff;
   font-size: 16px;
   font-weight: 700;
@@ -145,7 +145,7 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: #f8fafc;
+  background: #f4f6fb;
 }
 
 .lc-login__mobile-logo {
@@ -304,7 +304,7 @@
   padding: 0;
   border: 0;
   border-radius: 8px;
-  background: #2563eb;
+  background: #004ac6;
   color: #ffffff;
   font-family: inherit;
   font-size: var(--lc-btn-fs);
@@ -334,7 +334,11 @@
 }
 
 .lc-login__forgot {
-  color: #2563eb;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-min);
+  padding: 0 var(--space-sm);
+  color: #004ac6;
   font-size: var(--lc-label);
   line-height: 20px;
   font-weight: 500;

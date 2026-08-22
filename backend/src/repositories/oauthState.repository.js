@@ -1,9 +1,11 @@
 import { db } from '../config/database.js';
 
 export const oauthStateRepository = {
-  async create({ companyId, state, expiresAt }) {
+  async create({ companyId, userId = null, provider = 'META', state, expiresAt }) {
     const [id] = await db('oauth_states').insert({
       company_id: companyId,
+      user_id: userId,
+      provider,
       state,
       expires_at: expiresAt,
     });

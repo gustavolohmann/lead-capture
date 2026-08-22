@@ -4,6 +4,7 @@ import { automationFlowController } from '../controllers/automationFlow.controll
 import { authMiddleware } from '../middlewares/auth.middleware.js';
 import { validate } from '../middlewares/validate.middleware.js';
 import { createCampaignSchema } from '../validators/campaign.validator.js';
+import { addCampaignAdSchema } from '../validators/adsBuilder.validator.js';
 import { createCampaignAutomationSchema } from '../validators/automationFlow.validator.js';
 
 const campaignsRoutes = Router();
@@ -19,6 +20,20 @@ campaignsRoutes.post(
 campaignsRoutes.patch('/:id/pause', campaignsController.pause);
 campaignsRoutes.patch('/:id/activate', campaignsController.activate);
 campaignsRoutes.post('/sync', campaignsController.sync);
+campaignsRoutes.get('/:id', campaignsController.details);
+campaignsRoutes.post(
+  '/:campaignId/ads',
+  validate(addCampaignAdSchema),
+  campaignsController.addAd
+);
+campaignsRoutes.patch(
+  '/:campaignId/ads/:adId/pause',
+  campaignsController.pauseAd
+);
+campaignsRoutes.patch(
+  '/:campaignId/ads/:adId/activate',
+  campaignsController.activateAd
+);
 
 campaignsRoutes.get(
   '/:campaignId/automations',

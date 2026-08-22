@@ -196,7 +196,7 @@ export default function FormPreview() {
           {success ? <p className="forms-page__success">{success}</p> : null}
 
           <button className="btn btn-primary" type="submit" disabled={submitting}>
-            {submitting ? 'Enviando...' : 'Enviar (teste)'}
+            {submitting ? 'Enviando...' : `${form.submitLabel || 'Enviar'} (teste)`}
           </button>
         </form>
       </section>

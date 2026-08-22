@@ -1,0 +1,189 @@
+.create-campaign-modal {
+  /* layout from .ui-modal */
+}
+
+.create-campaign-modal__backdrop {
+  /* chrome from .ui-modal__backdrop */
+}
+
+.create-campaign-modal__panel {
+  border-radius: var(--radius-card);
+}
+
+.create-campaign-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+}
+
+.create-campaign-modal__header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.create-campaign-modal__header p {
+  margin: var(--space-sm) 0 0;
+  font-size: var(--text-label);
+  color: var(--ink-muted);
+}
+
+.create-campaign-modal__close {
+  border: 0;
+  background: transparent;
+  color: var(--outline);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 var(--space-xs);
+  min-width: var(--touch-min);
+  min-height: var(--touch-min);
+}
+
+.create-campaign-modal__close:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+
+.create-campaign-modal__grid {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.create-campaign-objective {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas:
+    'icon title arrow'
+    'icon desc arrow'
+    'icon badge arrow';
+  column-gap: var(--space-md);
+  row-gap: var(--space-xs);
+  width: 100%;
+  text-align: left;
+  padding: var(--space-lg) 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-container-lowest);
+  cursor: pointer;
+  font: inherit;
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+}
+
+.create-campaign-objective:hover,
+.create-campaign-objective:focus-visible {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  box-shadow: var(--shadow-hover);
+  outline: none;
+}
+
+.create-campaign-objective:active {
+  transform: translateY(1px);
+}
+
+.create-campaign-objective__icon {
+  grid-area: icon;
+  font-size: 28px;
+  line-height: 1;
+  align-self: start;
+  padding-top: 2px;
+}
+
+.create-campaign-objective__title {
+  grid-area: title;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.create-campaign-objective__desc {
+  grid-area: desc;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-muted);
+}
+
+.create-campaign-objective__badge {
+  grid-area: badge;
+  margin-top: var(--space-sm);
+  display: inline-flex;
+  width: fit-content;
+  padding: 2px var(--space-sm);
+  border-radius: 999px;
+  background: var(--info-soft);
+  color: var(--info);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.create-campaign-objective__arrow {
+  grid-area: arrow;
+  align-self: center;
+  color: var(--primary);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.create-campaign-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-lg);
+}
+
+.create-campaign-conflict {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--z-modal) + 10);
+  display: grid;
+  place-items: center;
+  padding: var(--space-lg);
+}
+
+.create-campaign-conflict__backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(15, 23, 42, 0.45);
+  cursor: pointer;
+}
+
+.create-campaign-conflict__panel {
+  position: relative;
+  z-index: 1;
+  width: min(420px, 100%);
+  padding: var(--space-xl);
+  border-radius: var(--radius-lg);
+  background: var(--surface-container-lowest);
+  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.22);
+}
+
+.create-campaign-conflict__panel h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.create-campaign-conflict__panel p {
+  margin: var(--space-sm) 0 0;
+  color: var(--ink-muted);
+  font-size: var(--text-body);
+  line-height: var(--text-body-lh);
+}
+
+.create-campaign-conflict__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+  margin-top: var(--space-lg);
+}

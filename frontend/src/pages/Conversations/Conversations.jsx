@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { conversationsApi } from '../../services/conversations.api.js';
 import { useSocket } from '../../hooks/useSocket.js';
@@ -28,6 +28,51 @@ function formatTime(value) {
   }
 }
 
+function startOfDay(date) {
+  const copy = new Date(date);
+  copy.setHours(0, 0, 0, 0);
+  return copy;
+}
+
+/**
+ * Na lista, só a hora faz a fila parecer fora de ordem quando há conversas de
+ * dias diferentes. Hoje mostra a hora; antes disso, o dia.
+ */
+function formatListTime(value) {
+  if (!value) return '';
+  try {
+    const date = new Date(value);
+    const days = Math.round(
+      (startOfDay(new Date()) - startOfDay(date)) / 86400000
+    );
+    if (days <= 0) return formatTime(date);
+    if (days === 1) return 'Ontem';
+    if (days < 7) {
+      return date
+        .toLocaleDateString('pt-BR', { weekday: 'short' })
+        .replace('.', '');
+    }
+    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+  } catch {
+    return '';
+  }
+}
+
+function formatMessageTime(value) {
+  if (!value) return '';
+  try {
+    const date = new Date(value);
+    const isToday = startOfDay(date).getTime() === startOfDay(new Date()).getTime();
+    if (isToday) return formatTime(date);
+    return `${date.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+    })} ${formatTime(date)}`;
+  } catch {
+    return '';
+  }
+}
+
 function toThreadMessage(payloadMessage) {
   return {
     id: payloadMessage.id,
@@ -38,6 +83,53 @@ function toThreadMessage(payloadMessage) {
     status: payloadMessage.status,
     createdAt: payloadMessage.createdAt,
   };
+}
+
+function initialsFromName(name = '') {
+  const parts = String(name).trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return '?';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+}
+
+function channelClass(channel) {
+  const value = String(channel || '').toUpperCase();
+  if (value === 'WHATSAPP') return 'is-whatsapp';
+  if (value === 'INSTAGRAM') return 'is-instagram';
+  if (value === 'MESSENGER') return 'is-messenger';
+  return 'is-default';
+}
+
+function channelLabel(channel) {
+  const value = String(channel || '').toUpperCase();
+  if (value === 'WHATSAPP') return 'WhatsApp';
+  if (value === 'INSTAGRAM') return 'Instagram';
+  if (value === 'MESSENGER') return 'Messenger';
+  return channel || 'Canal';
+}
+
+function conversationStatusLabel(status) {
+  const key = String(status || '').toUpperCase();
+  const map = {
+    OPEN: 'Aberta',
+    CLOSED: 'Encerrada',
+    PENDING: 'Pendente',
+    ARCHIVED: 'Arquivada',
+  };
+  return map[key] || null;
+}
+
+function messageStatusLabel(status) {
+  const key = String(status || '').toUpperCase();
+  const map = {
+    PENDING: 'Pendente',
+    SENT: 'Enviada',
+    DELIVERED: 'Entregue',
+    READ: 'Lida',
+    FAILED: 'Falhou',
+    ERROR: 'Falhou',
+  };
+  return map[key] || null;
 }
 
 export default function Conversations() {
@@ -59,13 +151,20 @@ export default function Conversations() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [channelFilter, setChannelFilter] = useState('ALL');
   const selectedIdRef = useRef(null);
   const handledMessageEventRef = useRef(null);
   const handledConversationEventRef = useRef(null);
+  const messagesEndRef = useRef(null);
 
   useEffect(() => {
     selectedIdRef.current = selectedId;
   }, [selectedId]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, selectedId]);
 
   async function loadConversations() {
     setLoading(true);
@@ -237,87 +336,231 @@ export default function Conversations() {
     openConversation(id);
   }
 
+  const filteredConversations = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return conversations.filter((item) => {
+      const channel = String(item.channel || '').toUpperCase();
+      if (channelFilter === 'UNREAD' && !(item.unreadCount > 0)) return false;
+      if (
+        channelFilter !== 'ALL' &&
+        channelFilter !== 'UNREAD' &&
+        channel !== channelFilter
+      ) {
+        return false;
+      }
+      if (!query) return true;
+      const haystack = [
+        item.leadName,
+        item.leadId,
+        item.channel,
+        item.lastMessagePreview,
+        item.status,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(query);
+    });
+  }, [conversations, searchQuery, channelFilter]);
+
+  const hasActiveFilter = channelFilter !== 'ALL' || searchQuery.trim() !== '';
   const selected = conversations.find((item) => item.id === selectedId);
+  const selectedName = selected?.leadName || (selected ? `Lead #${selected.leadId}` : '');
 
   return (
     <div className="conversations-page">
-      <header className="conversations-page__header">
-        <h1 className="text-h2">Conversas</h1>
-        <p className="text-subtitle conversations-page__subtitle">
-          Histórico WhatsApp / Instagram por lead.
-        </p>
+      <header className="page-header conversations-page__header">
+        <div className="page-header__copy">
+          <h1 className="page-header__title">Conversas</h1>
+          <p className="page-header__subtitle">
+            Atenda WhatsApp, Instagram e Messenger em um só lugar.
+          </p>
+        </div>
       </header>
 
       {error ? <p className="conversations-page__error">{error}</p> : null}
 
-      <div className="conversations-layout">
-        <aside className="card conversations-list">
-          {loading ? <p className="text-body">Carregando...</p> : null}
-          {!loading && conversations.length === 0 ? (
-            <p className="text-body conversations-empty">Nenhuma conversa ainda.</p>
-          ) : null}
-          {conversations.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className={`conversations-item${selectedId === item.id ? ' is-active' : ''}`}
-              onClick={() => handleSelectConversation(item.id)}
-            >
-              <div className="conversations-item__top">
-                <strong>{item.leadName || `Lead #${item.leadId}`}</strong>
-                <span className="conversations-item__time">
-                  {formatTime(item.lastMessageAt || item.updatedAt)}
-                </span>
-              </div>
-              <span className="conversations-item__preview">
-                {item.lastMessagePreview || `${item.channel} · ${item.status}`}
+      <div
+        className={`conversations-layout${selectedId ? '' : ' conversations-layout--no-selection'}`}
+      >
+        <aside className="conversations-list">
+          <div className="conversations-list__toolbar">
+            <label className="conversations-search">
+              <span className="material-symbols-outlined" aria-hidden="true">
+                search
               </span>
-              <div className="conversations-item__meta">
-                <span>{item.channel}</span>
-                {item.unreadCount > 0 ? (
-                  <span className="conversations-item__unread">
-                    {item.unreadCount}
-                  </span>
-                ) : null}
-              </div>
-            </button>
-          ))}
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Buscar conversas..."
+                aria-label="Buscar conversas"
+              />
+            </label>
+            <div className="conversations-filters" role="group" aria-label="Filtrar canal">
+              {[
+                { id: 'ALL', label: 'Todos' },
+                { id: 'WHATSAPP', label: 'WhatsApp' },
+                { id: 'INSTAGRAM', label: 'Instagram' },
+                { id: 'MESSENGER', label: 'Messenger' },
+                { id: 'UNREAD', label: 'Não lidas' },
+              ].map((filter) => (
+                <button
+                  key={filter.id}
+                  type="button"
+                  className={`conversations-filters__chip${
+                    channelFilter === filter.id ? ' is-active' : ''
+                  }`}
+                  onClick={() => setChannelFilter(filter.id)}
+                >
+                  {filter.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="conversations-list__items">
+            {loading ? (
+              <p className="conversations-empty">Carregando conversas...</p>
+            ) : null}
+            {!loading && filteredConversations.length === 0 ? (
+              <p className="conversations-empty">
+                {hasActiveFilter
+                  ? 'Nenhuma conversa encontrada com esses filtros. Ajuste a busca ou volte para Todos.'
+                  : 'Nenhuma conversa ainda. Conecte WhatsApp ou Instagram e responda leads por aqui.'}
+              </p>
+            ) : null}
+            {filteredConversations.map((item) => {
+              const name = item.leadName || `Lead #${item.leadId}`;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`conversations-item${
+                    selectedId === item.id ? ' is-active' : ''
+                  }`}
+                  onClick={() => handleSelectConversation(item.id)}
+                >
+                  <div
+                    className={`conversations-item__avatar ${channelClass(item.channel)}`}
+                    aria-hidden="true"
+                  >
+                    {initialsFromName(name)}
+                  </div>
+                  <div className="conversations-item__body">
+                    <div className="conversations-item__top">
+                      <strong>{name}</strong>
+                      <span className="conversations-item__time">
+                        {formatListTime(item.lastMessageAt || item.updatedAt)}
+                      </span>
+                    </div>
+                    <span className="conversations-item__preview">
+                      {item.lastMessagePreview ||
+                        [
+                          channelLabel(item.channel),
+                          conversationStatusLabel(item.status),
+                        ]
+                          .filter(Boolean)
+                          .join(' · ') ||
+                        'Sem mensagens'}
+                    </span>
+                    <div className="conversations-item__meta">
+                      <span
+                        className={`conversations-channel-badge ${channelClass(item.channel)}`}
+                      >
+                        {channelLabel(item.channel)}
+                      </span>
+                      {item.unreadCount > 0 ? (
+                        <span className="conversations-item__unread">
+                          {item.unreadCount}
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </aside>
 
-        <section className="card conversations-thread">
+        <section className="conversations-thread">
           {!selectedId ? (
-            <p className="text-body conversations-empty">
-              Selecione uma conversa para ver o histórico.
-            </p>
+            <div className="conversations-thread__empty">
+              <span className="material-symbols-outlined" aria-hidden="true">
+                forum
+              </span>
+              <p>Selecione uma conversa para ver o histórico.</p>
+            </div>
           ) : (
             <>
               <div className="conversations-thread__header">
-                <h2>{selected?.leadName || `Lead #${selected?.leadId}`}</h2>
-                <span>{selected?.channel}</span>
+                <div className="conversations-thread__identity">
+                  <div
+                    className={`conversations-item__avatar ${channelClass(selected?.channel)}`}
+                    aria-hidden="true"
+                  >
+                    {initialsFromName(selectedName)}
+                  </div>
+                  <div>
+                    <h2>{selectedName}</h2>
+                    <span
+                      className={`conversations-channel-badge ${channelClass(selected?.channel)}`}
+                    >
+                      {channelLabel(selected?.channel)}
+                    </span>
+                  </div>
+                </div>
               </div>
+
               <div className="conversations-thread__messages">
+                {messages.length === 0 ? (
+                  <p className="conversations-empty">
+                    Nenhuma mensagem nesta conversa. Escreva abaixo para iniciar.
+                  </p>
+                ) : null}
                 {messages.map((msg) => (
                   <div
                     key={messageKey(msg)}
-                    className={`conversations-bubble conversations-bubble--${String(msg.direction || '').toLowerCase()}`}
+                    className={`conversations-bubble conversations-bubble--${String(
+                      msg.direction || ''
+                    ).toLowerCase()}`}
                   >
                     <p>{msg.content}</p>
                     <small>
-                      {msg.status}
-                      {msg.createdAt ? ` · ${formatTime(msg.createdAt)}` : ''}
+                      {[
+                        messageStatusLabel(msg.status),
+                        formatMessageTime(msg.createdAt),
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}
                     </small>
                   </div>
                 ))}
+                <div ref={messagesEndRef} />
               </div>
+
               <form className="conversations-composer" onSubmit={handleSend}>
-                <input
-                  className="input"
+                <textarea
+                  className="conversations-composer__input"
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
                   placeholder="Escreva uma mensagem..."
+                  rows={2}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      if (!sending && draft.trim()) {
+                        e.currentTarget.form?.requestSubmit();
+                      }
+                    }
+                  }}
                 />
-                <button className="btn btn-primary" type="submit" disabled={sending}>
-                  {sending ? 'Enviando...' : 'Enviar'}
+                <button
+                  className="btn btn-primary conversations-composer__send"
+                  type="submit"
+                  disabled={sending || !draft.trim()}
+                >
+                  {sending ? 'Enviando mensagem...' : 'Enviar mensagem'}
                 </button>
               </form>
             </>

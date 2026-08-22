@@ -13,5 +13,7 @@ export const db = knex({
   pool: {
     min: 0,
     max: 10,
+    // Libera conexões ociosas para o Railway conseguir hibernar o serviço.
+    idleTimeoutMillis: 10_000,
   },
 });

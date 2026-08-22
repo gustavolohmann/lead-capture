@@ -39,7 +39,7 @@ export default defineConfig({
           timeout: 120_000,
           env: {
             ...process.env,
-            VITE_API_URL: `http://localhost:${API_PORT}`,
+            VITE_API_URL: `http://localhost:${API_PORT}/api`,
           },
         },
       ],

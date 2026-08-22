@@ -375,6 +375,78 @@ describe('E2E Lead Capture SaaS', () => {
   });
 
   describe('Negativos', () => {
+    test('Adicionar anúncio exige autenticação e isola Campaign/Ad Set por tenant', async () => {
+      const { companyId } = await seedMasterUser({ withCompany: true });
+      await seedSecondCompanyUser();
+      const loginA = await loginAs(TEST_MASTER.email, TEST_MASTER.password);
+      const loginB = await loginAs(TEST_USER_B.email, TEST_USER_B.password);
+
+      const [campaignA] = await db('campaigns').insert({
+        company_id: companyId,
+        ad_account_id: 'act_123456',
+        campaign_id: 'meta_campaign_add_ad_a',
+        name: 'Campanha A',
+        objective: 'TRAFFIC',
+        status: 'PAUSED',
+      });
+      const [campaignOther] = await db('campaigns').insert({
+        company_id: companyId,
+        ad_account_id: 'act_123456',
+        campaign_id: 'meta_campaign_add_ad_other',
+        name: 'Campanha Outra',
+        objective: 'TRAFFIC',
+        status: 'PAUSED',
+      });
+      const [foreignAdSet] = await db('ad_sets').insert({
+        company_id: companyId,
+        campaign_id: campaignOther,
+        meta_adset_id: 'meta_adset_other_campaign',
+        name: 'Ad Set de outra campanha',
+        status: 'PAUSED',
+      });
+
+      const payload = {
+        adSetId: foreignAdSet,
+        pageId: '999',
+        name: 'Novo anúncio',
+        creative: {
+          title: 'Título',
+          text: 'Texto principal',
+          imageBase64: `data:image/jpeg;base64,${'a'.repeat(48)}`,
+          linkUrl: 'https://example.com',
+        },
+      };
+
+      const unauthenticated = await api()
+        .post(`/campaigns/${campaignA}/ads`)
+        .send(payload);
+      expect(unauthenticated.status).toBe(401);
+
+      const crossedAdSet = await api()
+        .post(`/campaigns/${campaignA}/ads`)
+        .set(auth(loginA.body.token))
+        .set('Idempotency-Key', 'e2e-crossed-adset')
+        .send(payload);
+      expect(crossedAdSet.status).toBe(404);
+      expect(crossedAdSet.body.code).toBe('AD_SET_NOT_FOUND');
+
+      const otherTenant = await api()
+        .post(`/campaigns/${campaignA}/ads`)
+        .set(auth(loginB.body.token))
+        .set('Idempotency-Key', 'e2e-other-tenant')
+        .send(payload);
+      expect(otherTenant.status).toBe(404);
+      expect(otherTenant.body.code).toBe('CAMPAIGN_NOT_FOUND');
+
+      const missingCampaign = await api()
+        .post('/campaigns/999999/ads')
+        .set(auth(loginA.body.token))
+        .set('Idempotency-Key', 'e2e-missing-campaign')
+        .send(payload);
+      expect(missingCampaign.status).toBe(404);
+      expect(missingCampaign.body.code).toBe('CAMPAIGN_NOT_FOUND');
+    });
+
     test('Login errado → 401', async () => {
       await seedMasterUser({ withCompany: true });
       const res = await loginAs(TEST_MASTER.email, 'senha_errada_x');

@@ -1,0 +1,129 @@
+.campaign-ad-modal {
+  position: fixed;
+  z-index: 90;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--space-lg);
+}
+
+.campaign-ad-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgb(15 23 42 / 55%);
+}
+
+.campaign-ad-modal__panel {
+  position: relative;
+  display: grid;
+  width: min(720px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow: hidden;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-card);
+  background: var(--surface-container-lowest);
+  box-shadow: var(--shadow-hover);
+}
+
+.campaign-ad-modal__header,
+.campaign-ad-modal__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+}
+
+.campaign-ad-modal__header {
+  border-bottom: 1px solid var(--outline-variant);
+}
+
+.campaign-ad-modal__header h2,
+.campaign-ad-modal__header p {
+  margin: 0;
+}
+
+.campaign-ad-modal__header h2 {
+  color: var(--on-surface);
+  font-size: 20px;
+}
+
+.campaign-ad-modal__header p {
+  color: var(--on-surface-variant);
+  font-size: var(--text-label);
+}
+
+.campaign-ad-modal__close {
+  display: grid;
+  width: var(--touch-min);
+  height: var(--touch-min);
+  flex: 0 0 auto;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  color: var(--on-surface-variant);
+  background: transparent;
+  cursor: pointer;
+  font-size: 24px;
+}
+
+.campaign-ad-modal__close:hover {
+  background: var(--surface-container-low);
+}
+
+.campaign-ad-modal__body {
+  display: grid;
+  gap: var(--space-lg);
+  overflow-y: auto;
+  padding: var(--space-lg);
+}
+
+.campaign-ad-modal__context {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-md);
+  padding-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--outline-variant);
+}
+
+.campaign-ad-modal__channel {
+  display: grid;
+  align-content: center;
+  gap: var(--space-xs);
+  min-height: 72px;
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--surface-container-low);
+}
+
+.campaign-ad-modal__channel span {
+  color: var(--on-surface-variant);
+  font-size: var(--text-caption);
+}
+
+.campaign-ad-modal__channel strong {
+  color: var(--on-surface);
+}
+
+.campaign-ad-modal__footer {
+  justify-content: flex-end;
+  border-top: 1px solid var(--outline-variant);
+}
+
+@media (max-width: 640px) {
+  .campaign-ad-modal {
+    padding: 0;
+  }
+
+  .campaign-ad-modal__panel {
+    width: 100%;
+    max-height: 100vh;
+    min-height: 100vh;
+    border-radius: 0;
+  }
+
+  .campaign-ad-modal__context {
+    grid-template-columns: 1fr;
+  }
+}

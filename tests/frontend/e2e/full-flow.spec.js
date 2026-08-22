@@ -95,10 +95,10 @@ test.describe('Cenário 12 — Frontend completo', () => {
       page.getByRole('heading', { name: /Novo formulário/i })
     ).toBeVisible();
 
-    await page.locator('.forms-builder .field').filter({ hasText: 'Nome' }).locator('input').fill('Form PW Imóveis');
-    await page.locator('.forms-field-card').first().locator('input').first().fill('Nome completo');
+    await page.getByLabel('Nome do formulário').fill('Form PW Imóveis');
+    await page.getByLabel('Label').first().fill('Nome completo');
 
-    await page.getByRole('button', { name: /Salvar/i }).click();
+    await page.getByRole('button', { name: /Criar formulário|Salvar/i }).click();
     await page.waitForURL(/\/forms\/\d+/, { timeout: 15000 });
 
     await page.goto('/leads');

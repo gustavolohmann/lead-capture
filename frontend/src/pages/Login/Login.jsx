@@ -160,12 +160,9 @@ export default function Login() {
         </div>
 
         <div className="lc-login__brand-copy">
-          <h1 className="lc-login__brand-title">
-            Transforme seus anúncios em oportunidades reais.
-          </h1>
+          <h1 className="lc-login__brand-title">Lead Capture</h1>
           <p className="lc-login__brand-subtitle">
-            Conecte suas campanhas, capture leads e acompanhe seus clientes em
-            um único lugar.
+            Entre para gerenciar campanhas, leads e conversas.
           </p>
         </div>
 
@@ -199,7 +196,7 @@ export default function Login() {
           <div className="lc-login__card-header">
             <h2 className="lc-login__card-title">Bem-vindo novamente</h2>
             <p className="lc-login__card-subtitle">
-              Entre na sua conta para continuar
+              Entre na sua conta para continuar.
             </p>
           </div>
 

@@ -23,3 +23,15 @@ Thumbs.db
 
 # Coverage
 coverage/
+
+# Pull temporário do Railway CLI
+.railway-config-pull-*/
+
+# Capturas locais de auditoria (não sobem no deploy)
+tests/desktop/
+tests/responsive/
+tests/ui-polish/
+tests/ui-stack/
+tests/stitch_ad_editor_streamlined_layout_revisao/
+tests/stitch_ad_editor_streamlined_layout_revisao.zip
+docs/stitch-conversas/

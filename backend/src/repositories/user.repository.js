@@ -8,6 +8,8 @@ const userSelect = [
   'u.role_id',
   'u.company_id',
   'u.status',
+  'u.timezone',
+  'u.scheduling_slug',
   'u.created_at',
   'u.updated_at',
   'r.name as role_name',
@@ -30,10 +32,22 @@ export const userRepository = {
       .first();
   },
 
+  async findBySchedulingSlug(slug) {
+    return db('users').where({ scheduling_slug: slug, status: 'ACTIVE' }).first();
+  },
+
   async updateCompanyId(userId, companyId) {
     await db('users').where({ id: userId }).update({
       company_id: companyId,
     });
+  },
+
+  async updateSchedulingProfile(userId, { timezone, schedulingSlug }) {
+    const data = { updated_at: db.fn.now() };
+    if (timezone !== undefined) data.timezone = timezone;
+    if (schedulingSlug !== undefined) data.scheduling_slug = schedulingSlug;
+    await db('users').where({ id: userId }).update(data);
+    return this.findByIdWithRole(userId);
   },
 
   async findActiveByCompanyId(companyId) {

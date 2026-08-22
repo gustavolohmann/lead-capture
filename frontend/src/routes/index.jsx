@@ -1,9 +1,9 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import Login from '../pages/Login/Login.jsx';
 import MetaConnection from '../pages/MetaConnection/MetaConnection.jsx';
+import MetaAds from '../pages/MetaAds/MetaAds.jsx';
 import Leads from '../pages/Leads/Leads.jsx';
 import Campaigns from '../pages/Campaigns/Campaigns.jsx';
-import CampaignObjectivePicker from '../pages/Campaigns/CampaignObjectivePicker.jsx';
 import CampaignWizard from '../pages/Campaigns/CampaignWizard.jsx';
 import CampaignMessagesWizard from '../pages/Campaigns/CampaignMessagesWizard.jsx';
 import CampaignTrafficWizard from '../pages/Campaigns/CampaignTrafficWizard.jsx';
@@ -57,9 +57,13 @@ export default function AppRoutes() {
       >
         <Route path="/" element={<Navigate to="/meta" replace />} />
         <Route path="/meta" element={<MetaConnection />} />
+        <Route path="/meta-ads" element={<MetaAds />} />
         <Route path="/leads" element={<Leads />} />
         <Route path="/campaigns" element={<Campaigns />} />
-        <Route path="/campaigns/new" element={<CampaignObjectivePicker />} />
+        <Route
+          path="/campaigns/new"
+          element={<Navigate to="/campaigns?create=1" replace />}
+        />
         <Route
           path="/campaigns/:campaignId/automation"
           element={<CampaignAutomation />}

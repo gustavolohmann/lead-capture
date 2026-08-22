@@ -56,7 +56,7 @@ export const leadRepository = {
     return db('leads').where({ company_id: companyId, id }).first();
   },
 
-  async findByCompanyId(companyId, { limit = 100, offset = 0 } = {}) {
+  async findByCompanyId(companyId, { limit = 200, offset = 0 } = {}) {
     return db('leads')
       .where({ company_id: companyId })
       .orderBy('created_at', 'desc')

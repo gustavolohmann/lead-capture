@@ -76,6 +76,32 @@ export const metaWhatsappRepository = {
     );
   },
 
+  async findByCompanyAndPhoneDigits(companyId, phoneDigits) {
+    const digits = String(phoneDigits || '').replace(/\D/g, '');
+    if (digits.length < 8) return null;
+
+    const accounts = await db('meta_whatsapp_accounts')
+      .where({ company_id: companyId })
+      .whereNotNull('phone_number')
+      .select('*');
+
+    return (
+      accounts.find((account) => {
+        const accountDigits = String(account.phone_number || '').replace(
+          /\D/g,
+          ''
+        );
+        if (!accountDigits) return false;
+        if (accountDigits === digits) return true;
+        const shorter =
+          accountDigits.length < digits.length ? accountDigits : digits;
+        const longer =
+          accountDigits.length < digits.length ? digits : accountDigits;
+        return longer.endsWith(shorter) && shorter.length >= 8;
+      }) || null
+    );
+  },
+
   async updatePhoneNumberId(id, phoneNumberId) {
     if (!id || !phoneNumberId) return;
     await db('meta_whatsapp_accounts')

@@ -129,8 +129,11 @@ function createClient() {
 async function request(method, path, options = {}) {
   const client = createClient();
   let lastError;
+  const maxAttempts =
+    Number(options.maxAttempts) ||
+    (String(method).toUpperCase() === 'GET' ? MAX_RETRIES : 1);
 
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt += 1) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
       const response = await client.request({
         method,
@@ -170,8 +173,13 @@ async function request(method, path, options = {}) {
         retryable,
       });
 
-      if (!retryable || attempt === MAX_RETRIES) {
-        throw mapMarketingError(error);
+      if (!retryable || attempt === maxAttempts) {
+        const mapped = mapMarketingError(error);
+        if (options.nonIdempotent && retryable) {
+          mapped.ambiguous = true;
+          mapped.cleanupRequired = true;
+        }
+        throw mapped;
       }
 
       await sleep(BASE_DELAY_MS * attempt);
@@ -208,13 +216,26 @@ function toFormBody(payload) {
 export const metaMarketingClient = {
   async listCampaigns(adAccountId, accessToken) {
     const actId = normalizeActId(adAccountId);
-    return request('GET', `/${actId}/campaigns`, {
-      params: {
-        access_token: accessToken,
-        fields: 'id,name,objective,status,daily_budget,created_time,updated_time',
-        limit: 100,
-      },
-    });
+    const path = `/${actId}/campaigns`;
+    const baseParams = {
+      access_token: accessToken,
+      fields: 'id,name,objective,status,effective_status,daily_budget,created_time,updated_time',
+      limit: 500,
+    };
+    const rows = [];
+    let after = null;
+    let pages = 0;
+    while (pages < 50) {
+      const params = after ? { ...baseParams, after } : baseParams;
+      const response = await request('GET', path, { params });
+      const batch = Array.isArray(response?.data) ? response.data : [];
+      rows.push(...batch);
+      const nextAfter = response?.paging?.cursors?.after;
+      if (!nextAfter || batch.length === 0 || nextAfter === after) break;
+      after = nextAfter;
+      pages += 1;
+    }
+    return { data: rows };
   },
 
   async createCampaign(adAccountId, accessToken, payload) {
@@ -235,6 +256,7 @@ export const metaMarketingClient = {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
+      nonIdempotent: true,
     });
   },
 
@@ -247,6 +269,20 @@ export const metaMarketingClient = {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
+      maxAttempts: MAX_RETRIES,
+    });
+  },
+
+  async updateAdStatus(adId, accessToken, status) {
+    return request('POST', `/${adId}`, {
+      params: {
+        access_token: accessToken,
+      },
+      data: toFormBody({ status }),
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      maxAttempts: MAX_RETRIES,
     });
   },
 
@@ -255,11 +291,27 @@ export const metaMarketingClient = {
       params: {
         access_token: accessToken,
       },
+      maxAttempts: MAX_RETRIES,
+    });
+  },
+
+  async deleteAd(adId, accessToken) {
+    return request('DELETE', `/${adId}`, {
+      params: { access_token: accessToken },
+      maxAttempts: MAX_RETRIES,
+    });
+  },
+
+  async deleteAdCreative(creativeId, accessToken) {
+    return request('DELETE', `/${creativeId}`, {
+      params: { access_token: accessToken },
+      maxAttempts: MAX_RETRIES,
     });
   },
 
   async createLeadForm(pageId, pageAccessToken, payload) {
     return request('POST', `/${pageId}/leadgen_forms`, {
+      nonIdempotent: true,
       params: {
         access_token: pageAccessToken,
       },
@@ -273,6 +325,7 @@ export const metaMarketingClient = {
   async createAdSet(adAccountId, accessToken, payload) {
     const actId = normalizeActId(adAccountId);
     return request('POST', `/${actId}/adsets`, {
+      nonIdempotent: true,
       params: {
         access_token: accessToken,
       },
@@ -286,6 +339,7 @@ export const metaMarketingClient = {
   async uploadAdImage(adAccountId, accessToken, { bytesBase64, name }) {
     const actId = normalizeActId(adAccountId);
     return request('POST', `/${actId}/adimages`, {
+      nonIdempotent: true,
       params: {
         access_token: accessToken,
       },
@@ -311,6 +365,7 @@ export const metaMarketingClient = {
       params.appsecret_proof = String(options.appSecretProof);
     }
     return request('POST', `/${actId}/adcreatives`, {
+      nonIdempotent: true,
       params,
       data: toFormBody(payload),
       headers: {
@@ -331,11 +386,126 @@ export const metaMarketingClient = {
       params.appsecret_proof = String(options.appSecretProof);
     }
     return request('POST', `/${actId}/ads`, {
+      nonIdempotent: true,
       params,
       data: toFormBody(payload),
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
     });
+  },
+
+  /**
+   * Fetch Insights with cursor pagination (never follows paging.next URLs that embed tokens).
+   */
+  async getInsights(adAccountId, accessToken, options = {}) {
+    const actId = normalizeActId(adAccountId);
+    const maxPages = Math.min(Number(options.maxPages) || 25, 50);
+    const limit = Math.min(Number(options.limit) || 100, 500);
+    const path = `/${actId}/insights`;
+
+    const baseParams = {
+      access_token: accessToken,
+      fields: options.fields,
+      level: options.level,
+      limit,
+    };
+
+    if (options.datePreset) {
+      baseParams.date_preset = options.datePreset;
+    }
+    if (options.timeRange) {
+      baseParams.time_range = JSON.stringify(options.timeRange);
+    }
+    if (options.filtering?.length) {
+      baseParams.filtering = JSON.stringify(options.filtering);
+    }
+    if (options.timeIncrement) {
+      baseParams.time_increment = options.timeIncrement;
+    }
+
+    const rows = [];
+    let after = null;
+    let pages = 0;
+
+    while (pages < maxPages) {
+      const params = after ? { ...baseParams, after } : { ...baseParams };
+      const data = await request('GET', path, { params });
+      const batch = Array.isArray(data?.data) ? data.data : [];
+      rows.push(...batch);
+
+      const nextAfter = data?.paging?.cursors?.after;
+      if (!nextAfter || batch.length === 0) break;
+      // Stop if Meta returns the same cursor (loop guard)
+      if (after && nextAfter === after) break;
+      after = nextAfter;
+      pages += 1;
+    }
+
+    return rows;
+  },
+
+  async listAdSets(adAccountId, accessToken, options = {}) {
+    const actId = normalizeActId(adAccountId);
+    const params = {
+      access_token: accessToken,
+      fields: options.fields || 'id,name,campaign_id,status,effective_status',
+      limit: Math.min(Number(options.limit) || 100, 500),
+    };
+    if (options.filtering?.length) {
+      params.filtering = JSON.stringify(options.filtering);
+    }
+
+    const rows = [];
+    let after = null;
+    let pages = 0;
+    const maxPages = Math.min(Number(options.maxPages) || 25, 50);
+    const path = `/${actId}/adsets`;
+
+    while (pages < maxPages) {
+      const pageParams = after ? { ...params, after } : { ...params };
+      const data = await request('GET', path, { params: pageParams });
+      const batch = Array.isArray(data?.data) ? data.data : [];
+      rows.push(...batch);
+      const nextAfter = data?.paging?.cursors?.after;
+      if (!nextAfter || batch.length === 0) break;
+      if (after && nextAfter === after) break;
+      after = nextAfter;
+      pages += 1;
+    }
+    return rows;
+  },
+
+  async listAds(adAccountId, accessToken, options = {}) {
+    const actId = normalizeActId(adAccountId);
+    const params = {
+      access_token: accessToken,
+      fields:
+        options.fields ||
+        'id,name,adset_id,campaign_id,status,effective_status,creative{id,name,title,body,image_hash,call_to_action_type}',
+      limit: Math.min(Number(options.limit) || 100, 500),
+    };
+    if (options.filtering?.length) {
+      params.filtering = JSON.stringify(options.filtering);
+    }
+
+    const rows = [];
+    let after = null;
+    let pages = 0;
+    const maxPages = Math.min(Number(options.maxPages) || 25, 50);
+    const path = `/${actId}/ads`;
+
+    while (pages < maxPages) {
+      const pageParams = after ? { ...params, after } : { ...params };
+      const data = await request('GET', path, { params: pageParams });
+      const batch = Array.isArray(data?.data) ? data.data : [];
+      rows.push(...batch);
+      const nextAfter = data?.paging?.cursors?.after;
+      if (!nextAfter || batch.length === 0) break;
+      if (after && nextAfter === after) break;
+      after = nextAfter;
+      pages += 1;
+    }
+    return rows;
   },
 };

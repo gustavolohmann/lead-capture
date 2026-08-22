@@ -28,6 +28,7 @@ export const formFieldInputSchema = z.object({
 export const createFormSchema = z.object({
   name: z.string().trim().min(3).max(255),
   description: z.string().trim().max(2000).optional().nullable(),
+  submitLabel: z.string().trim().min(1).max(120).optional().nullable(),
   status: z.nativeEnum(FormStatus).optional(),
   fields: z.array(formFieldInputSchema).min(1, 'Informe ao menos um campo'),
 });
@@ -35,6 +36,7 @@ export const createFormSchema = z.object({
 export const updateFormSchema = z.object({
   name: z.string().trim().min(3).max(255).optional(),
   description: z.string().trim().max(2000).optional().nullable(),
+  submitLabel: z.string().trim().min(1).max(120).optional().nullable(),
   status: z.nativeEnum(FormStatus).optional(),
   fields: z.array(formFieldInputSchema).min(1).optional(),
 });

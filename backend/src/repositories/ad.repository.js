@@ -74,4 +74,29 @@ export const adRepository = {
       .where({ company_id: companyId, ad_set_id: adSetId })
       .orderBy('created_at', 'desc');
   },
+
+  async findByCampaignAndId(companyId, campaignId, id) {
+    return db('ads as a')
+      .join('ad_sets as s', 's.id', 'a.ad_set_id')
+      .where({
+        'a.company_id': companyId,
+        's.company_id': companyId,
+        's.campaign_id': campaignId,
+        'a.id': id,
+      })
+      .select('a.*')
+      .first();
+  },
+
+  async updateStatus(companyId, id, status) {
+    await db('ads').where({ company_id: companyId, id }).update({ status });
+    return this.findById(companyId, id);
+  },
+
+  async deleteByMetaAdId(companyId, metaAdId) {
+    if (!metaAdId) return 0;
+    return db('ads')
+      .where({ company_id: companyId, meta_ad_id: String(metaAdId) })
+      .del();
+  },
 };

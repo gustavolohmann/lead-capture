@@ -32,7 +32,7 @@ export default function ConversationUserInfo({ contact, loading }) {
   if (loading) {
     return (
       <aside className="conversation-user-info">
-        <p className="text-body">Carregando contato...</p>
+        <p className="conversation-user-info__hint">Carregando contato...</p>
       </aside>
     );
   }
@@ -40,7 +40,7 @@ export default function ConversationUserInfo({ contact, loading }) {
   if (!contact) {
     return (
       <aside className="conversation-user-info">
-        <p className="text-body">Selecione uma conversa.</p>
+        <p className="conversation-user-info__hint">Selecione uma conversa.</p>
       </aside>
     );
   }
@@ -71,63 +71,71 @@ export default function ConversationUserInfo({ contact, loading }) {
         </div>
       </div>
 
-      <dl className="conversation-user-info__list">
-        <div>
-          <dt>Telefone</dt>
-          <dd>{display(contact.phone)}</dd>
-        </div>
-        <div>
-          <dt>Email</dt>
-          <dd>{display(contact.email)}</dd>
-        </div>
-        <div>
-          <dt>Canal</dt>
-          <dd>{display(contact.channel)}</dd>
-        </div>
-        {contact.pageName ? (
+      <section className="conversation-user-info__section">
+        <h4>Contato</h4>
+        <dl className="conversation-user-info__list">
           <div>
-            <dt>Página</dt>
-            <dd>{display(contact.pageName)}</dd>
+            <dt>Telefone</dt>
+            <dd>{display(contact.phone)}</dd>
           </div>
-        ) : null}
-        {contact.messengerPsid || contact.externalUserId ? (
           <div>
-            <dt>ID Messenger (PSID)</dt>
-            <dd className="conversation-user-info__mono">
-              {display(contact.messengerPsid || contact.externalUserId)}
-            </dd>
+            <dt>Email</dt>
+            <dd>{display(contact.email)}</dd>
           </div>
-        ) : null}
-        <div>
-          <dt>Origem</dt>
-          <dd>{display(contact.origin)}</dd>
-        </div>
-        <div>
-          <dt>Campanha</dt>
-          <dd>{display(contact.campaignName)}</dd>
-        </div>
-        <div>
-          <dt>Anúncio</dt>
-          <dd>{display(contact.adName)}</dd>
-        </div>
-        <div>
-          <dt>Formulário</dt>
-          <dd>{display(contact.formName)}</dd>
-        </div>
-        <div>
-          <dt>Entrada do lead</dt>
-          <dd>{formatDate(contact.leadCreatedAt)}</dd>
-        </div>
+          {contact.pageName ? (
+            <div>
+              <dt>Página</dt>
+              <dd>{display(contact.pageName)}</dd>
+            </div>
+          ) : null}
+        </dl>
         {contact.channel === 'MESSENGER' ? (
-          <div>
-            <dt>Observação</dt>
-            <dd>
-              A Meta não envia telefone/email no Messenger. Nome e foto vêm do
-              perfil público do PSID.
-            </dd>
-          </div>
+          <p className="conversation-user-info__note">
+            No Messenger a Meta não envia telefone nem email. Nome e foto vêm do
+            perfil público.
+          </p>
         ) : null}
-      </dl>
+      </section>
+
+      <section className="conversation-user-info__section">
+        <h4>Origem do lead</h4>
+        <dl className="conversation-user-info__list">
+          <div>
+            <dt>Origem</dt>
+            <dd>{display(contact.origin)}</dd>
+          </div>
+          <div>
+            <dt>Campanha</dt>
+            <dd>{display(contact.campaignName)}</dd>
+          </div>
+          <div>
+            <dt>Anúncio</dt>
+            <dd>{display(contact.adName)}</dd>
+          </div>
+          <div>
+            <dt>Formulário</dt>
+            <dd>{display(contact.formName)}</dd>
+          </div>
+          <div>
+            <dt>Entrou em</dt>
+            <dd>{formatDate(contact.leadCreatedAt)}</dd>
+          </div>
+        </dl>
+      </section>
+
+      {contact.messengerPsid || contact.externalUserId ? (
+        <details className="conversation-user-info__tech">
+          <summary>Dados técnicos</summary>
+          <dl className="conversation-user-info__list">
+            <div>
+              <dt>ID Messenger (PSID)</dt>
+              <dd className="conversation-user-info__mono">
+                {display(contact.messengerPsid || contact.externalUserId)}
+              </dd>
+            </div>
+          </dl>
+        </details>
+      ) : null}
     </aside>
   );
 }

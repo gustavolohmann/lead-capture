@@ -31,9 +31,15 @@ export function startAutomationRunner() {
   const interval = Number(env.AUTOMATION_POLL_INTERVAL_MS || 30000);
   if (timer) return;
 
-  logger.info('Automation runner iniciado', { intervalMs: interval });
-  timer = setInterval(tick, interval);
+  logger.info('Automation runner iniciado', {
+    intervalMs: interval,
+    idleSleep: Boolean(env.APP_IDLE_SLEEP),
+  });
   setTimeout(tick, 2000);
+  if (env.APP_IDLE_SLEEP) {
+    return;
+  }
+  timer = setInterval(tick, interval);
 }
 
 export function stopAutomationRunner() {

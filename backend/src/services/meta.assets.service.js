@@ -9,6 +9,7 @@ import { whatsappClient } from './whatsapp.client.js';
 import { decrypt, encrypt } from '../utils/encryption.js';
 import { AppError } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
+import { env } from '../config/env.js';
 import { toPublicMetaPage } from '../models/meta.page.model.js';
 import { toPublicMetaAdAccount } from '../models/meta.adAccount.model.js';
 import { toPublicMetaInstagramAccount } from '../models/meta.instagram.model.js';
@@ -261,42 +262,43 @@ export const metaAssetsService = {
             logger.info('WABA assinada no app para webhooks', {
               companyId,
               wabaId: String(waba.id),
-              phoneNumber: phoneInfo.phoneNumber,
               phoneNumberId: phoneInfo.phoneNumberId,
             });
           } catch (error) {
             logger.error('Falha ao assinar WABA no app', {
               companyId,
               wabaId: String(waba.id),
-              phoneNumber: phoneInfo.phoneNumber,
               code: error.code || null,
               detail: error.message,
             });
           }
 
           // Tenta registrar o número na Cloud API (necessário para outbound)
-          if (phoneInfo.phoneNumberId) {
+          if (phoneInfo.phoneNumberId && env.WHATSAPP_REGISTER_PIN) {
             try {
               await whatsappClient.registerPhoneNumber({
                 phoneNumberId: phoneInfo.phoneNumberId,
-                pin: process.env.WHATSAPP_REGISTER_PIN || '000000',
+                pin: env.WHATSAPP_REGISTER_PIN,
                 accessToken: resolved.accessToken,
               });
               logger.info('Número WhatsApp registrado na Cloud API', {
                 companyId,
-                phoneNumber: phoneInfo.phoneNumber,
                 phoneNumberId: phoneInfo.phoneNumberId,
               });
             } catch (error) {
               // Já registrado / sem permissão / PIN inválido — não bloqueia sync
               logger.warn('Registro Cloud API WhatsApp não aplicado', {
                 companyId,
-                phoneNumber: phoneInfo.phoneNumber,
                 phoneNumberId: phoneInfo.phoneNumberId,
                 code: error.code || null,
                 detail: error.message,
               });
             }
+          } else if (phoneInfo.phoneNumberId) {
+            logger.info('Registro Cloud API WhatsApp ignorado: PIN não configurado', {
+              companyId,
+              phoneNumberId: phoneInfo.phoneNumberId,
+            });
           }
 
           seen.add(String(waba.id));

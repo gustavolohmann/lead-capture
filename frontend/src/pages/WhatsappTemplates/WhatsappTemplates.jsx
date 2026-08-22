@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { whatsappTemplatesApi } from '../../services/whatsappTemplates.api.js';
 import './WhatsappTemplates.css';
 
@@ -22,6 +21,38 @@ const STATUS_LABEL = {
   DISABLED: 'Desativado',
   FLAGGED: 'Sinalizado',
   IN_APPEAL: 'Em apelação',
+};
+
+const LANGUAGE_LABEL = {
+  pt_BR: 'Português (BR)',
+  pt_PT: 'Português (PT)',
+  en_US: 'Inglês (EUA)',
+  es_ES: 'Espanhol',
+};
+
+function languageLabel(code) {
+  return LANGUAGE_LABEL[code] || code;
+}
+
+const REJECTION_LABEL = {
+  INVALID_FORMAT: 'Formatação inválida',
+  ABUSIVE_CONTENT: 'Conteúdo não permitido',
+  INCORRECT_CATEGORY: 'Categoria incorreta',
+  SCAM: 'Suspeita de fraude',
+  PROMOTIONAL: 'Conteúdo promocional na categoria errada',
+  TAG_CONTENT_MISMATCH: 'Conteúdo não corresponde à categoria',
+  NONE: 'Sem motivo informado',
+};
+
+function rejectionLabel(reason) {
+  const key = String(reason || '').toUpperCase();
+  return REJECTION_LABEL[key] || 'Motivo não informado pela Meta';
+}
+
+const CATEGORY_LABEL = {
+  UTILITY: 'Utilidade',
+  MARKETING: 'Marketing',
+  AUTHENTICATION: 'Autenticação',
 };
 
 function statusClass(status) {
@@ -133,15 +164,15 @@ export default function WhatsappTemplates() {
 
   return (
     <div className="tpl-page">
-      <header className="tpl-page__header">
-        <div>
-          <h1 className="text-h2">Templates WhatsApp</h1>
-          <p className="text-subtitle tpl-page__subtitle">
+      <header className="page-header tpl-page__header">
+        <div className="page-header__copy">
+          <h1 className="page-header__title">Templates WhatsApp</h1>
+          <p className="page-header__subtitle">
             Crie templates no formato da Meta, envie para aprovação e use no
             follow-up. Variáveis: {'{{1}}'}, {'{{2}}'}, etc.
           </p>
         </div>
-        <div className="tpl-page__actions">
+        <div className="page-header__actions">
           <button
             type="button"
             className="btn btn-secondary"
@@ -204,9 +235,9 @@ export default function WhatsappTemplates() {
                     setForm((f) => ({ ...f, category: e.target.value }))
                   }
                 >
-                  <option value="UTILITY">UTILITY</option>
-                  <option value="MARKETING">MARKETING</option>
-                  <option value="AUTHENTICATION">AUTHENTICATION</option>
+                  <option value="UTILITY">Utilidade</option>
+                  <option value="MARKETING">Marketing</option>
+                  <option value="AUTHENTICATION">Autenticação</option>
                 </select>
               </label>
             </div>
@@ -226,7 +257,7 @@ export default function WhatsappTemplates() {
             <label className="field">
               <span className="field-label">Corpo *</span>
               <textarea
-                className="input"
+                className="input tpl-builder__textarea"
                 required
                 rows={4}
                 value={form.bodyText}
@@ -296,9 +327,13 @@ export default function WhatsappTemplates() {
               <button className="btn btn-primary" type="submit" disabled={saving}>
                 {saving ? 'Enviando...' : 'Enviar para aprovação'}
               </button>
-              <Link className="btn btn-secondary" to="/campaigns">
-                Ir para campanhas / follow-up
-              </Link>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setShowForm(false)}
+              >
+                Cancelar
+              </button>
             </div>
           </form>
         </section>
@@ -306,12 +341,13 @@ export default function WhatsappTemplates() {
 
       <section className="card tpl-list">
         {loading ? (
-          <p className="text-body">Carregando...</p>
+          <p className="text-body">Carregando templates...</p>
         ) : templates.length === 0 ? (
-          <div className="tpl-empty">
-            <p>Nenhum template ainda.</p>
-            <p className="text-subtitle">
-              Crie um novo ou sincronize os já existentes na Meta.
+          <div className="ui-empty">
+            <p className="ui-empty__title">Nenhum template ainda</p>
+            <p className="ui-empty__text">
+              Crie um template e envie para aprovação, ou sincronize os que já
+              existem na sua conta da Meta.
             </p>
           </div>
         ) : (
@@ -333,8 +369,8 @@ export default function WhatsappTemplates() {
                     <td>
                       <strong>{tpl.name}</strong>
                     </td>
-                    <td>{tpl.language}</td>
-                    <td>{tpl.category}</td>
+                    <td>{languageLabel(tpl.language)}</td>
+                    <td>{CATEGORY_LABEL[tpl.category] || tpl.category}</td>
                     <td>
                       <span className={statusClass(tpl.status)}>
                         {STATUS_LABEL[tpl.status] || tpl.status}
@@ -343,7 +379,7 @@ export default function WhatsappTemplates() {
                     <td>
                       {tpl.status === 'REJECTED' ? (
                         <div className="tpl-reject">
-                          <strong>{tpl.rejectedReason || 'UNKNOWN'}</strong>
+                          <strong>{rejectionLabel(tpl.rejectedReason)}</strong>
                           {tpl.rejectionInfo?.reason ? (
                             <p>{tpl.rejectionInfo.reason}</p>
                           ) : null}

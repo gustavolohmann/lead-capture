@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { companyService } from './company.service.js';
 import { metaMarketingClient } from './meta.marketing.client.js';
 import { metaGraphClient } from './meta.graph.client.js';
@@ -5,12 +6,14 @@ import { metaConnectionRepository } from '../repositories/meta.connection.reposi
 import { metaPageRepository } from '../repositories/meta.page.repository.js';
 import { metaAdAccountRepository } from '../repositories/meta.adAccount.repository.js';
 import { metaInstagramRepository } from '../repositories/meta.instagram.repository.js';
+import { metaWhatsappRepository } from '../repositories/meta.whatsapp.repository.js';
 import { requireInstagramAppConfig } from './meta.instagram.config.js';
 import { leadFormRepository } from '../repositories/leadForm.repository.js';
 import { adSetRepository } from '../repositories/adSet.repository.js';
 import { adCreativeRepository } from '../repositories/adCreative.repository.js';
 import { adRepository } from '../repositories/ad.repository.js';
 import { campaignRepository } from '../repositories/campaign.repository.js';
+import { campaignPublicationRepository } from '../repositories/campaignPublication.repository.js';
 import { decrypt } from '../utils/encryption.js';
 import { AppError } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
@@ -24,6 +27,7 @@ import { toPublicLeadForm } from '../models/leadForm.model.js';
 import { toPublicAdSet } from '../models/adSet.model.js';
 import { toPublicAdCreative } from '../models/adCreative.model.js';
 import { toPublicAd } from '../models/ad.model.js';
+import { normalizeCampaignAds } from './meta.adsBuilder.normalize.js';
 
 const FIELD_TYPE_MAP = {
   name: 'FULL_NAME',
@@ -383,6 +387,16 @@ function buildTargeting(audience = {}) {
     },
   };
 
+  // Only accept genders as Meta array ([1]=male, [2]=female). Omit when absent.
+  if (Array.isArray(audience.genders) && audience.genders.length > 0) {
+    const genders = audience.genders
+      .map((value) => Number(value))
+      .filter((value) => value === 1 || value === 2);
+    if (genders.length > 0) {
+      targeting.genders = [...new Set(genders)];
+    }
+  }
+
   if (city && String(city).trim()) {
     // Geo search by city name is limited without location keys.
     // Keep country targeting and store city hint for product UI.
@@ -415,6 +429,90 @@ function extractImageHash(uploadResponse) {
   if (!images || typeof images !== 'object') return null;
   const first = Object.values(images)[0];
   return first?.hash || null;
+}
+
+function markCleanupRequired(error, context) {
+  error.cleanupRequired = true;
+  error.cleanupContext = {
+    ...(error.cleanupContext || {}),
+    ...context,
+  };
+}
+
+async function cleanupCreativeResource({
+  companyId,
+  accessToken,
+  creativeId,
+  metaCreativeId,
+  flow,
+}) {
+  try {
+    await metaMarketingClient.deleteAdCreative(metaCreativeId, accessToken);
+  } catch (error) {
+    logger.error('Falha ao remover Creative Meta após erro', {
+      companyId,
+      flow,
+      metaCreativeId,
+      detail: error?.message || null,
+    });
+    return false;
+  }
+
+  try {
+    let localCreativeId = creativeId;
+    if (!localCreativeId) {
+      const local = await adCreativeRepository.findByMetaCreativeId(
+        companyId,
+        metaCreativeId
+      );
+      localCreativeId = local?.id || null;
+    }
+    if (localCreativeId) {
+      await adCreativeRepository.deleteById(companyId, localCreativeId);
+    }
+    return true;
+  } catch (error) {
+    logger.error('Falha ao remover Creative local após compensação Meta', {
+      companyId,
+      flow,
+      creativeId: creativeId || null,
+      metaCreativeId,
+      detail: error?.message || null,
+    });
+    return false;
+  }
+}
+
+async function cleanupAdResource({
+  companyId,
+  accessToken,
+  metaAdId,
+  flow,
+}) {
+  try {
+    await metaMarketingClient.deleteAd(metaAdId, accessToken);
+  } catch (error) {
+    logger.error('Falha ao remover Ad Meta após erro', {
+      companyId,
+      flow,
+      metaAdId,
+      detail: error?.message || null,
+    });
+    return false;
+  }
+
+  try {
+    await adRepository.deleteByMetaAdId(companyId, metaAdId);
+    return true;
+  } catch (error) {
+    logger.error('Falha ao remover Ad local após compensação Meta', {
+      companyId,
+      flow,
+      metaAdId,
+      detail: error?.message || null,
+    });
+    return false;
+  }
 }
 
 async function createCreativeAndPersist({
@@ -529,17 +627,35 @@ async function createCreativeAndPersist({
     });
   }
 
-  const creative = await adCreativeRepository.upsertByMetaCreativeId({
-    companyId,
-    adAccountId,
-    metaCreativeId: String(metaCreative.id),
-    name: creativeName,
-    title,
-    body,
-    imageHash,
-    ctaType,
-    status: 'ACTIVE',
-  });
+  let creative;
+  try {
+    creative = await adCreativeRepository.upsertByMetaCreativeId({
+      companyId,
+      adAccountId,
+      metaCreativeId: String(metaCreative.id),
+      name: creativeName,
+      title,
+      body,
+      imageHash,
+      ctaType,
+      status: 'ACTIVE',
+    });
+  } catch (error) {
+    const cleaned = await cleanupCreativeResource({
+      companyId,
+      accessToken,
+      creativeId: null,
+      metaCreativeId: String(metaCreative.id),
+      flow: 'CREATIVE_LOCAL_PERSIST',
+    });
+    if (!cleaned) {
+      markCleanupRequired(error, {
+        metaCreativeId: String(metaCreative.id),
+        operation: 'CREATE_CREATIVE',
+      });
+    }
+    throw error;
+  }
 
   return { creative, metaCreative };
 }
@@ -558,62 +674,305 @@ async function createAdAndPersist({
   const adName = String(
     creativeInput.adName || `Anúncio ${campaignName}`
   ).trim();
-  const metaAd = await metaMarketingClient.createAd(adAccountId, accessToken, {
-    name: adName,
-    adset_id: metaAdSetId,
-    creative: { creative_id: metaCreativeId },
-    status: 'PAUSED',
-  });
-
-  if (!metaAd?.id) {
-    const graphError = metaAd?.error || null;
-    logger.error('Anúncio Meta sem id', {
-      companyId,
-      adAccountId,
-      metaAdSetId,
-      metaCreativeId,
-      response: metaAd || null,
+  let metaAd = null;
+  try {
+    metaAd = await metaMarketingClient.createAd(adAccountId, accessToken, {
+      name: adName,
+      adset_id: metaAdSetId,
+      creative: { creative_id: metaCreativeId },
+      status: 'PAUSED',
     });
 
-    const userMsg =
-      graphError?.error_user_msg ||
-      graphError?.error_user_title ||
-      graphError?.message ||
-      null;
+    if (!metaAd?.id) {
+      const graphError = metaAd?.error || null;
+      logger.error('Anúncio Meta sem id', {
+        companyId,
+        adAccountId,
+        metaAdSetId,
+        metaCreativeId,
+        response: metaAd || null,
+      });
 
-    if (
-      graphError?.code === 31 ||
-      graphError?.error_subcode === 3858385 ||
-      /autentique sua conta|pending action|authenticate/i.test(
-        String(userMsg || '')
-      )
-    ) {
-      throw new AppError(
-        userMsg ||
-          'A Meta bloqueou a criação de anúncios: autentique sua conta no Gerenciador de Anúncios e tente de novo.',
-        {
-          statusCode: 403,
-          code: 'META_AD_ACCOUNT_AUTH_REQUIRED',
-        }
-      );
+      const userMsg =
+        graphError?.error_user_msg ||
+        graphError?.error_user_title ||
+        graphError?.message ||
+        null;
+
+      if (
+        graphError?.code === 31 ||
+        graphError?.error_subcode === 3858385 ||
+        /autentique sua conta|pending action|authenticate/i.test(
+          String(userMsg || '')
+        )
+      ) {
+        throw new AppError(
+          userMsg ||
+            'A Meta bloqueou a criação de anúncios: autentique sua conta no Gerenciador de Anúncios e tente de novo.',
+          {
+            statusCode: 403,
+            code: 'META_AD_ACCOUNT_AUTH_REQUIRED',
+          }
+        );
+      }
+
+      throw new AppError(userMsg || 'Falha ao criar anúncio na Meta', {
+        statusCode: 502,
+        code: 'META_MARKETING_ERROR',
+      });
     }
 
-    throw new AppError(userMsg || 'Falha ao criar anúncio na Meta', {
-      statusCode: 502,
-      code: 'META_MARKETING_ERROR',
+    const ad = await adRepository.upsertByMetaAdId({
+      companyId,
+      adSetId,
+      creativeId,
+      metaAdId: String(metaAd.id),
+      name: adName,
+      status: 'PAUSED',
+    });
+
+    return ad;
+  } catch (error) {
+    let canRemoveCreative = !error?.ambiguous;
+    if (metaAd?.id) {
+      canRemoveCreative = await cleanupAdResource({
+        companyId,
+        accessToken,
+        metaAdId: String(metaAd.id),
+        flow: 'CREATE_AD',
+      });
+      if (!canRemoveCreative) {
+        markCleanupRequired(error, {
+          metaAdId: String(metaAd.id),
+          metaCreativeId: String(metaCreativeId),
+          operation: 'CREATE_AD',
+        });
+      }
+    }
+
+    if (canRemoveCreative) {
+      const creativeCleaned = await cleanupCreativeResource({
+        companyId,
+        accessToken,
+        creativeId,
+        metaCreativeId: String(metaCreativeId),
+        flow: 'CREATE_AD',
+      });
+      if (!creativeCleaned) {
+        markCleanupRequired(error, {
+          metaCreativeId: String(metaCreativeId),
+          operation: 'CREATE_AD',
+        });
+      }
+    } else if (error?.ambiguous) {
+      markCleanupRequired(error, {
+        metaCreativeId: String(metaCreativeId),
+        operation: 'CREATE_AD_AMBIGUOUS',
+      });
+    }
+
+    throw error;
+  }
+}
+
+async function cleanupFailedCampaign({
+  companyId,
+  campaign,
+  metaCampaign,
+  accessToken,
+  flow,
+}) {
+  let remoteCleanupSucceeded = !metaCampaign?.id;
+  let localCleanupSucceeded = !campaign?.id;
+
+  if (metaCampaign?.id) {
+    try {
+      await metaMarketingClient.deleteCampaign(metaCampaign.id, accessToken);
+      remoteCleanupSucceeded = true;
+    } catch (cleanupError) {
+      logger.error('Falha ao limpar campanha Meta após erro', {
+        companyId,
+        flow,
+        metaCampaignId: metaCampaign.id,
+        detail: cleanupError.message,
+      });
+    }
+  }
+
+  // Preserva o registro local quando a remoção remota falha para permitir
+  // reconciliação posterior e evitar perder os IDs dos recursos órfãos.
+  if (campaign?.id && remoteCleanupSucceeded) {
+    try {
+      await campaignRepository.deleteCascade(companyId, campaign.id);
+      localCleanupSucceeded = true;
+    } catch (cleanupError) {
+      logger.error('Falha ao limpar campanha local após erro', {
+        companyId,
+        flow,
+        campaignId: campaign.id,
+        detail: cleanupError.message,
+      });
+    }
+  }
+
+  return {
+    cleanupRequired: !remoteCleanupSucceeded || !localCleanupSucceeded,
+  };
+}
+
+function parseStoredJson(value) {
+  if (value == null || typeof value === 'object') return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}
+
+function hashPublicationRequest(input) {
+  return crypto
+    .createHash('sha256')
+    .update(JSON.stringify(input || {}))
+    .digest('hex');
+}
+
+async function runIdempotentPublication({
+  companyId,
+  idempotencyKey,
+  storedKey,
+  requestPayload,
+  publish,
+  campaignId,
+}) {
+  const key = String(idempotencyKey || '').trim();
+  if (!key) return publish();
+  if (key.length > 128) {
+    throw new AppError('Idempotency-Key deve ter no máximo 128 caracteres', {
+      statusCode: 400,
+      code: 'VALIDATION_ERROR',
     });
   }
 
-  const ad = await adRepository.upsertByMetaAdId({
+  const requestHash = hashPublicationRequest(requestPayload);
+  const publication = await campaignPublicationRepository.begin({
     companyId,
-    adSetId,
-    creativeId,
-    metaAdId: String(metaAd.id),
-    name: adName,
-    status: 'PAUSED',
+    idempotencyKey: storedKey || key,
+    requestHash,
   });
 
-  return ad;
+  if (!publication.created) {
+    const existing = publication.row;
+    if (!existing || existing.request_hash !== requestHash) {
+      throw new AppError('Idempotency-Key já usada com outro payload', {
+        statusCode: 409,
+        code: 'IDEMPOTENCY_KEY_REUSED',
+      });
+    }
+    if (existing.status === 'COMPLETED') {
+      const storedResult = parseStoredJson(existing.result);
+      if (storedResult) return storedResult;
+    }
+    if (existing.status === 'FAILED') {
+      const restarted = await campaignPublicationRepository.restartFailed(
+        companyId,
+        existing.id
+      );
+      if (restarted) {
+        publication.created = true;
+        publication.row = restarted;
+      }
+    }
+    if (!publication.created) {
+      throw new AppError('Publicação já iniciada com esta chave', {
+        statusCode: 409,
+        code:
+          existing.status === 'IN_PROGRESS'
+            ? 'PUBLICATION_IN_PROGRESS'
+            : 'PUBLICATION_REQUIRES_RECONCILIATION',
+      });
+    }
+  }
+
+  try {
+    const result = await publish();
+    await campaignPublicationRepository.complete(companyId, publication.row.id, {
+      campaignId: campaignId ?? result.campaign?.id ?? null,
+      result,
+    });
+    return result;
+  } catch (error) {
+    await campaignPublicationRepository.fail(
+      companyId,
+      publication.row.id,
+      error,
+      { cleanupRequired: Boolean(error?.cleanupRequired) }
+    );
+    throw error;
+  }
+}
+
+function adPublicationKey(campaignId, idempotencyKey) {
+  const digest = crypto
+    .createHash('sha256')
+    .update(String(idempotencyKey || ''))
+    .digest('hex');
+  return `ad:${campaignId}:${digest}`;
+}
+
+function parseJsonObject(value) {
+  if (!value) return {};
+  if (typeof value === 'object') return value;
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+async function resolveInstagramUserId(companyId, page, pageAccessToken) {
+  requireInstagramAppConfig();
+  let instagramUserId = null;
+
+  try {
+    const response = await metaGraphClient.getPageInstagram(
+      page.page_id,
+      pageAccessToken
+    );
+    if (response?.instagram_business_account?.id) {
+      instagramUserId = String(response.instagram_business_account.id);
+      await metaInstagramRepository.upsert({
+        companyId,
+        instagramId: instagramUserId,
+        username: response.instagram_business_account.username || null,
+      });
+    }
+  } catch (error) {
+    logger.error('Falha ao resolver Instagram da página para anúncio', {
+      companyId,
+      pageId: page.page_id,
+      detail: error?.message || null,
+    });
+  }
+
+  if (!instagramUserId) {
+    const accounts = await metaInstagramRepository.findByCompanyId(companyId);
+    instagramUserId = accounts[0]?.instagram_id
+      ? String(accounts[0].instagram_id)
+      : null;
+  }
+
+  if (!instagramUserId) {
+    throw new AppError(
+      'Nenhuma conta Instagram vinculada à Página selecionada. Vincule o Instagram e sincronize os ativos.',
+      {
+        statusCode: 400,
+        code: 'INSTAGRAM_ACCOUNT_MISSING',
+      }
+    );
+  }
+
+  return instagramUserId;
 }
 
 export const metaAdsBuilderService = {
@@ -706,16 +1065,263 @@ export const metaAdsBuilderService = {
     return toPublicLeadForm(row);
   },
 
-  async createFullCampaign(companyId, input) {
-    const objective = input.objective || CampaignObjective.LEAD_GENERATION;
+  async createFullCampaign(companyId, input, { idempotencyKey } = {}) {
+    const publish = async () => {
+      const objective = input.objective || CampaignObjective.LEAD_GENERATION;
 
-    if (objective === CampaignObjective.MESSAGES) {
-      return this.createMessagesCampaign(companyId, input);
+      if (objective === CampaignObjective.MESSAGES) {
+        return this.createMessagesCampaign(companyId, input);
+      }
+      if (objective === CampaignObjective.TRAFFIC) {
+        return this.createTrafficCampaign(companyId, input);
+      }
+      return this.createLeadAdsCampaign(companyId, input);
+    };
+
+    return runIdempotentPublication({
+      companyId,
+      idempotencyKey,
+      requestPayload: input,
+      publish,
+    });
+  },
+
+  async addAdToCampaign(
+    companyId,
+    campaignId,
+    input,
+    { idempotencyKey } = {}
+  ) {
+    if (!String(idempotencyKey || '').trim()) {
+      throw new AppError('Idempotency-Key é obrigatória para criar anúncios', {
+        statusCode: 400,
+        code: 'IDEMPOTENCY_KEY_REQUIRED',
+      });
     }
-    if (objective === CampaignObjective.TRAFFIC) {
-      return this.createTrafficCampaign(companyId, input);
-    }
-    return this.createLeadAdsCampaign(companyId, input);
+
+    const publish = async () => {
+      await assertCompany(companyId);
+
+      const campaign = await campaignRepository.findById(companyId, campaignId);
+      if (!campaign) {
+        throw new AppError('Campanha não encontrada', {
+          statusCode: 404,
+          code: 'CAMPAIGN_NOT_FOUND',
+        });
+      }
+      if (
+        campaign.ad_account_id === 'act_demo_1n_local' ||
+        String(campaign.campaign_id || '').startsWith('demo_1n_company_')
+      ) {
+        throw new AppError(
+          'Campanhas de demonstração local não podem publicar anúncios na Meta.',
+          { statusCode: 400, code: 'LOCAL_DEMO_CAMPAIGN' }
+        );
+      }
+      if (!campaign.campaign_id) {
+        throw new AppError('Campanha sem ID Meta', {
+          statusCode: 400,
+          code: 'CAMPAIGN_META_ID_MISSING',
+        });
+      }
+
+      const adSet = await adSetRepository.findByCampaignAndId(
+        companyId,
+        campaign.id,
+        input.adSetId
+      );
+      if (!adSet) {
+        throw new AppError('Ad Set não encontrado nesta campanha', {
+          statusCode: 404,
+          code: 'AD_SET_NOT_FOUND',
+        });
+      }
+      if (!adSet.meta_adset_id) {
+        throw new AppError('Ad Set sem ID Meta', {
+          statusCode: 400,
+          code: 'AD_SET_META_ID_MISSING',
+        });
+      }
+
+      const adAccountId = await assertAdAccount(
+        companyId,
+        campaign.ad_account_id
+      );
+      const accessToken = await getUserToken(companyId);
+      const { page, pageAccessToken } = await getPageWithToken(
+        companyId,
+        input.pageId
+      );
+      const targeting = parseJsonObject(adSet.targeting);
+      const configuredPageId = String(targeting.pageId || '').trim();
+      if (configuredPageId && configuredPageId !== String(page.page_id)) {
+        throw new AppError('A Página selecionada não pertence a este Ad Set', {
+          statusCode: 400,
+          code: 'AD_SET_PAGE_MISMATCH',
+        });
+      }
+
+      const objective = String(campaign.objective || '').toUpperCase();
+      const creativeInput = {
+        ...input.creative,
+        adName: input.name,
+        name: input.creative.name || `Criativo ${input.name}`,
+      };
+      let ctaType;
+      let ctaValue;
+      let linkUrl;
+      let instagramUserId = null;
+
+      if (objective === CampaignObjective.LEAD_GENERATION) {
+        const leadForm = await leadFormRepository.findById(
+          companyId,
+          input.leadFormId
+        );
+        if (!leadForm?.form_id) {
+          throw new AppError('Formulário Meta não encontrado', {
+            statusCode: 404,
+            code: 'LEAD_FORM_NOT_FOUND',
+          });
+        }
+        if (String(leadForm.page_id) !== String(page.page_id)) {
+          throw new AppError('O formulário não pertence à Página selecionada', {
+            statusCode: 400,
+            code: 'LEAD_FORM_PAGE_MISMATCH',
+          });
+        }
+        linkUrl = resolveLeadAdsExternalLink({
+          creativeLink: creativeInput.linkUrl,
+        });
+        ctaType = String(creativeInput.cta || 'SIGN_UP');
+        ctaValue = {
+          lead_gen_form_id: String(leadForm.form_id),
+          link: linkUrl,
+        };
+      } else if (objective === CampaignObjective.TRAFFIC) {
+        linkUrl = String(creativeInput.linkUrl || '').trim();
+        if (!linkUrl.startsWith('http')) {
+          throw new AppError('URL do site é obrigatória', {
+            statusCode: 400,
+            code: 'VALIDATION_ERROR',
+          });
+        }
+        ctaType = String(creativeInput.cta || 'LEARN_MORE');
+      } else if (objective === CampaignObjective.MESSAGES) {
+        const channel = String(targeting.messageChannel || '').toUpperCase();
+        if (channel !== 'WHATSAPP' && channel !== 'INSTAGRAM') {
+          throw new AppError(
+            'O Ad Set não possui um canal de mensagens válido.',
+            { statusCode: 400, code: 'AD_SET_CHANNEL_MISSING' }
+          );
+        }
+
+        if (channel === 'WHATSAPP') {
+          const phone = String(
+            input.whatsappPhoneNumber || targeting.whatsappPhoneNumber || ''
+          ).trim();
+          const whatsapp =
+            await metaWhatsappRepository.findByCompanyAndPhoneDigits(
+              companyId,
+              phone
+            );
+          if (!whatsapp) {
+            throw new AppError(
+              'O número do WhatsApp não pertence aos ativos Meta desta empresa.',
+              { statusCode: 400, code: 'WHATSAPP_ACCOUNT_MISSING' }
+            );
+          }
+          ctaType = 'WHATSAPP_MESSAGE';
+          ctaValue = { whatsapp_phone_number: phone };
+          linkUrl = `https://www.facebook.com/${page.page_id}`;
+        } else {
+          instagramUserId = await resolveInstagramUserId(
+            companyId,
+            page,
+            pageAccessToken
+          );
+          ctaType = 'INSTAGRAM_MESSAGE';
+          ctaValue = { app_destination: 'INSTAGRAM_DIRECT' };
+          linkUrl = 'https://www.instagram.com/';
+        }
+      } else {
+        throw new AppError('Objetivo da campanha não suportado', {
+          statusCode: 400,
+          code: 'CAMPAIGN_OBJECTIVE_UNSUPPORTED',
+        });
+      }
+
+      const { creative, metaCreative } = await createCreativeAndPersist({
+        companyId,
+        adAccountId,
+        accessToken,
+        pageId: page.page_id,
+        campaignName: campaign.name,
+        creativeInput,
+        ctaType,
+        linkUrl,
+        ctaValue,
+        instagramUserId,
+        defaultTitle:
+          objective === CampaignObjective.MESSAGES
+            ? 'Fale conosco'
+            : objective === CampaignObjective.TRAFFIC
+              ? 'Saiba mais'
+              : 'Solicite orçamento',
+        defaultBody:
+          objective === CampaignObjective.MESSAGES
+            ? 'Envie uma mensagem e tire suas dúvidas.'
+            : objective === CampaignObjective.TRAFFIC
+              ? 'Acesse nosso site e confira.'
+              : 'Preencha o formulário',
+      });
+
+      const ad = await createAdAndPersist({
+        companyId,
+        adAccountId,
+        accessToken,
+        adSetId: adSet.id,
+        metaAdSetId: adSet.meta_adset_id,
+        creativeId: creative.id,
+        metaCreativeId: metaCreative.id,
+        campaignName: campaign.name,
+        creativeInput,
+      });
+
+      const publicCreative = toPublicAdCreative(creative);
+      const publicAd = {
+        ...toPublicAd(ad),
+        metaAdsetId: adSet.meta_adset_id,
+        creative: publicCreative,
+      };
+
+      logger.info('Anúncio adicionado à campanha existente', {
+        companyId,
+        campaignId: campaign.id,
+        metaCampaignId: campaign.campaign_id,
+        adSetId: adSet.id,
+        metaAdsetId: adSet.meta_adset_id,
+        adId: ad.id,
+        metaAdId: ad.meta_ad_id,
+      });
+
+      return {
+        campaign: toPublicCampaign(campaign),
+        adSet: toPublicAdSet(adSet),
+        creative: publicCreative,
+        ad: publicAd,
+      };
+    };
+
+    return runIdempotentPublication({
+      companyId,
+      idempotencyKey,
+      storedKey: idempotencyKey
+        ? adPublicationKey(campaignId, idempotencyKey)
+        : null,
+      requestPayload: { campaignId, ...input },
+      publish,
+      campaignId,
+    });
   },
 
   async createLeadAdsCampaign(companyId, input) {
@@ -736,10 +1342,14 @@ export const metaAdsBuilderService = {
     const budgetCents = toMetaBudgetCents(input.budget ?? input.dailyBudget);
     const formInput = input.form || {};
     const audience = input.audience || {};
-    const creativeInput = input.creative || {};
+    const adSpecs = normalizeCampaignAds(input);
 
     logger.info('Ads Builder: Lead Ads', { companyId, adAccountId });
-    const metaCampaign = await metaMarketingClient.createCampaign(
+    let metaCampaign = null;
+    let campaign = null;
+
+    try {
+    metaCampaign = await metaMarketingClient.createCampaign(
       adAccountId,
       accessToken,
       {
@@ -759,7 +1369,7 @@ export const metaAdsBuilderService = {
       });
     }
 
-    const campaign = await campaignRepository.create({
+    campaign = await campaignRepository.create({
       companyId,
       adAccountId,
       campaignId: String(metaCampaign.id),
@@ -818,54 +1428,92 @@ export const metaAdsBuilderService = {
       metaAdsetId: String(metaAdSet.id),
       name: adSetName,
       dailyBudget: null,
-      targeting: { ...targeting, cityHint },
+      targeting: {
+        ...targeting,
+        cityHint,
+        pageId: String(page.page_id),
+        leadFormId: form.id,
+        metaLeadFormId: String(form.formId),
+      },
       status: 'PAUSED',
     });
 
-    const ctaType = String(creativeInput.cta || creativeInput.ctaType || 'SIGN_UP');
-    // Meta exige URL externa no criativo de Lead Ads (não pode ser facebook.com/Página)
-    const externalLink = resolveLeadAdsExternalLink({
-      followUpActionUrl:
-        formInput.followUpActionUrl || formInput.privacyPolicyUrl,
-      privacyPolicyUrl: formInput.privacyPolicyUrl,
-      creativeLink: creativeInput.linkUrl || creativeInput.link,
-    });
-    const { creative, metaCreative } = await createCreativeAndPersist({
-      companyId,
-      adAccountId,
-      accessToken,
-      pageId: page.page_id,
-      campaignName,
-      creativeInput,
-      ctaType,
-      linkUrl: externalLink,
-      ctaValue: {
-        lead_gen_form_id: String(form.formId),
-        link: externalLink,
-      },
-      defaultTitle: 'Solicite orçamento',
-      defaultBody: 'Preencha o formulário',
-    });
+    const creatives = [];
+    const ads = [];
 
-    const ad = await createAdAndPersist({
-      companyId,
-      adAccountId,
-      accessToken,
-      adSetId: adSet.id,
-      metaAdSetId: metaAdSet.id,
-      creativeId: creative.id,
-      metaCreativeId: metaCreative.id,
-      campaignName,
-      creativeInput,
-    });
+    for (const spec of adSpecs) {
+      const creativeInput = spec.creativeInput;
+      const ctaType = String(
+        creativeInput.cta || creativeInput.ctaType || 'SIGN_UP'
+      );
+      // Meta exige URL externa no criativo de Lead Ads (não pode ser facebook.com/Página)
+      const externalLink = resolveLeadAdsExternalLink({
+        followUpActionUrl:
+          formInput.followUpActionUrl || formInput.privacyPolicyUrl,
+        privacyPolicyUrl: formInput.privacyPolicyUrl,
+        creativeLink: creativeInput.linkUrl || creativeInput.link,
+      });
+      const { creative, metaCreative } = await createCreativeAndPersist({
+        companyId,
+        adAccountId,
+        accessToken,
+        pageId: page.page_id,
+        campaignName,
+        creativeInput,
+        ctaType,
+        linkUrl: externalLink,
+        ctaValue: {
+          lead_gen_form_id: String(form.formId),
+          link: externalLink,
+        },
+        defaultTitle: 'Solicite orçamento',
+        defaultBody: 'Preencha o formulário',
+      });
+
+      const ad = await createAdAndPersist({
+        companyId,
+        adAccountId,
+        accessToken,
+        adSetId: adSet.id,
+        metaAdSetId: metaAdSet.id,
+        creativeId: creative.id,
+        metaCreativeId: metaCreative.id,
+        campaignName,
+        creativeInput,
+      });
+
+      creatives.push(toPublicAdCreative(creative));
+      ads.push(toPublicAd(ad));
+    }
 
     return {
       campaign: toPublicCampaign(campaign),
       form,
       adSet: toPublicAdSet(adSet),
-      creative: toPublicAdCreative(creative),
-      ad: toPublicAd(ad),
+      adSets: [toPublicAdSet(adSet)],
+      creative: creatives[0] || null,
+      creatives,
+      ad: ads[0] || null,
+      ads,
     };
+    } catch (error) {
+      logger.error('Ads Builder Lead Ads falhou', {
+        companyId,
+        detail: error?.message || null,
+        code: error?.code || null,
+      });
+      const cleanup = await cleanupFailedCampaign({
+        companyId,
+        campaign,
+        metaCampaign,
+        accessToken,
+        flow: 'LEAD_GENERATION',
+      });
+      error.cleanupRequired = Boolean(
+        error.cleanupRequired || cleanup.cleanupRequired
+      );
+      throw error;
+    }
   },
 
   async createMessagesCampaign(companyId, input) {
@@ -971,7 +1619,7 @@ export const metaAdsBuilderService = {
 
     const budgetCents = toMetaBudgetCents(input.budget ?? input.dailyBudget);
     const audience = input.audience || {};
-    const creativeInput = input.creative || {};
+    const normalizedAds = normalizeCampaignAds(input);
 
     logger.info('Ads Builder: Messages', { companyId, channels });
 
@@ -1019,7 +1667,22 @@ export const metaAdsBuilderService = {
       const creatives = [];
       const ads = [];
 
+      const adsByChannel = new Map(channels.map((channel) => [channel, []]));
+      if (Array.isArray(input.ads) && input.ads.length > 0) {
+        for (const spec of normalizedAds) {
+          const channel = spec.messageChannel || channels[0];
+          adsByChannel.get(channel)?.push(spec);
+        }
+      } else {
+        // Compatibilidade: o Creative singular gera um Ad para cada canal.
+        for (const channel of channels) {
+          adsByChannel.get(channel).push(normalizedAds[0]);
+        }
+      }
+
       for (const channel of channels) {
+        const channelAdSpecs = adsByChannel.get(channel) || [];
+        if (channelAdSpecs.length === 0) continue;
         const promotedObject = { page_id: String(page.page_id) };
         let destinationType = 'INSTAGRAM_DIRECT';
         let ctaType = 'INSTAGRAM_MESSAGE';
@@ -1073,40 +1736,52 @@ export const metaAdsBuilderService = {
           metaAdsetId: String(metaAdSet.id),
           name: adSetName,
           dailyBudget: null,
-          targeting: { ...targeting, cityHint, messageChannel: channel },
+          targeting: {
+            ...targeting,
+            cityHint,
+            messageChannel: channel,
+            pageId: String(page.page_id),
+            ...(channel === 'WHATSAPP'
+              ? { whatsappPhoneNumber: String(input.whatsappPhoneNumber).trim() }
+              : {}),
+          },
           status: 'PAUSED',
         });
 
-        const { creative, metaCreative } = await createCreativeAndPersist({
-          companyId,
-          adAccountId,
-          accessToken,
-          pageId: page.page_id,
-          campaignName: `${campaignName} ${channel}`,
-          creativeInput,
-          ctaType: creativeInput.cta || creativeInput.ctaType || ctaType,
-          linkUrl,
-          ctaValue,
-          instagramUserId: channelInstagramUserId,
-          defaultTitle: 'Fale conosco',
-          defaultBody: 'Envie uma mensagem e tire suas dúvidas.',
-        });
-
-        const ad = await createAdAndPersist({
-          companyId,
-          adAccountId,
-          accessToken,
-          adSetId: adSet.id,
-          metaAdSetId: metaAdSet.id,
-          creativeId: creative.id,
-          metaCreativeId: metaCreative.id,
-          campaignName: `${campaignName} ${channel}`,
-          creativeInput,
-        });
-
         adSets.push(toPublicAdSet(adSet));
-        creatives.push(toPublicAdCreative(creative));
-        ads.push(toPublicAd(ad));
+
+        for (const spec of channelAdSpecs) {
+          const creativeInput = spec.creativeInput;
+          const { creative, metaCreative } = await createCreativeAndPersist({
+            companyId,
+            adAccountId,
+            accessToken,
+            pageId: page.page_id,
+            campaignName: `${campaignName} ${channel}`,
+            creativeInput,
+            ctaType: creativeInput.cta || creativeInput.ctaType || ctaType,
+            linkUrl,
+            ctaValue,
+            instagramUserId: channelInstagramUserId,
+            defaultTitle: 'Fale conosco',
+            defaultBody: 'Envie uma mensagem e tire suas dúvidas.',
+          });
+
+          const ad = await createAdAndPersist({
+            companyId,
+            adAccountId,
+            accessToken,
+            adSetId: adSet.id,
+            metaAdSetId: metaAdSet.id,
+            creativeId: creative.id,
+            metaCreativeId: metaCreative.id,
+            campaignName: `${campaignName} ${channel}`,
+            creativeInput,
+          });
+
+          creatives.push(toPublicAdCreative(creative));
+          ads.push(toPublicAd(ad));
+        }
       }
 
       return {
@@ -1128,33 +1803,16 @@ export const metaAdsBuilderService = {
         code: error?.code || null,
       });
 
-      // Evita campanhas órfãs (Meta + local) quando o ad set/WhatsApp falha depois
-      if (campaign?.id) {
-        try {
-          await campaignRepository.deleteCascade(companyId, campaign.id);
-        } catch (cleanupError) {
-          logger.error('Falha ao limpar campanha local após erro', {
-            companyId,
-            campaignId: campaign.id,
-            detail: cleanupError.message,
-          });
-        }
-      }
-
-      if (metaCampaign?.id) {
-        try {
-          await metaMarketingClient.deleteCampaign(
-            metaCampaign.id,
-            accessToken
-          );
-        } catch (cleanupError) {
-          logger.error('Falha ao limpar campanha Meta após erro', {
-            companyId,
-            metaCampaignId: metaCampaign.id,
-            detail: cleanupError.message,
-          });
-        }
-      }
+      const cleanup = await cleanupFailedCampaign({
+        companyId,
+        campaign,
+        metaCampaign,
+        accessToken,
+        flow: 'MESSAGES',
+      });
+      error.cleanupRequired = Boolean(
+        error.cleanupRequired || cleanup.cleanupRequired
+      );
 
       throw error;
     }
@@ -1175,8 +1833,9 @@ export const metaAdsBuilderService = {
       });
     }
 
+    const adSpecs = normalizeCampaignAds(input);
     const linkUrl = String(
-      input.creative?.linkUrl || input.websiteUrl || ''
+      adSpecs[0]?.creativeInput?.linkUrl || input.websiteUrl || ''
     ).trim();
     if (!linkUrl.startsWith('http')) {
       throw new AppError('URL do site é obrigatória', {
@@ -1187,11 +1846,14 @@ export const metaAdsBuilderService = {
 
     const budgetCents = toMetaBudgetCents(input.budget ?? input.dailyBudget);
     const audience = input.audience || {};
-    const creativeInput = input.creative || {};
 
     logger.info('Ads Builder: Traffic', { companyId, linkUrl });
 
-    const metaCampaign = await metaMarketingClient.createCampaign(
+    let metaCampaign = null;
+    let campaign = null;
+
+    try {
+    metaCampaign = await metaMarketingClient.createCampaign(
       adAccountId,
       accessToken,
       {
@@ -1211,7 +1873,7 @@ export const metaAdsBuilderService = {
       });
     }
 
-    const campaign = await campaignRepository.create({
+    campaign = await campaignRepository.create({
       companyId,
       adAccountId,
       campaignId: String(metaCampaign.id),
@@ -1254,41 +1916,79 @@ export const metaAdsBuilderService = {
       metaAdsetId: String(metaAdSet.id),
       name: adSetName,
       dailyBudget: null,
-      targeting: { ...targeting, cityHint, websiteUrl: linkUrl },
+      targeting: {
+        ...targeting,
+        cityHint,
+        websiteUrl: linkUrl,
+        pageId: String(page.page_id),
+      },
       status: 'PAUSED',
     });
 
-    const { creative, metaCreative } = await createCreativeAndPersist({
-      companyId,
-      adAccountId,
-      accessToken,
-      pageId: page.page_id,
-      campaignName,
-      creativeInput,
-      ctaType: creativeInput.cta || creativeInput.ctaType || 'LEARN_MORE',
-      linkUrl,
-      defaultTitle: 'Saiba mais',
-      defaultBody: 'Acesse nosso site e confira.',
-    });
+    const creatives = [];
+    const ads = [];
 
-    const ad = await createAdAndPersist({
-      companyId,
-      adAccountId,
-      accessToken,
-      adSetId: adSet.id,
-      metaAdSetId: metaAdSet.id,
-      creativeId: creative.id,
-      metaCreativeId: metaCreative.id,
-      campaignName,
-      creativeInput,
-    });
+    for (const spec of adSpecs) {
+      const creativeInput = spec.creativeInput;
+      const creativeLinkUrl = String(
+        creativeInput.linkUrl || input.websiteUrl || ''
+      ).trim();
+      const { creative, metaCreative } = await createCreativeAndPersist({
+        companyId,
+        adAccountId,
+        accessToken,
+        pageId: page.page_id,
+        campaignName,
+        creativeInput,
+        ctaType: creativeInput.cta || creativeInput.ctaType || 'LEARN_MORE',
+        linkUrl: creativeLinkUrl,
+        defaultTitle: 'Saiba mais',
+        defaultBody: 'Acesse nosso site e confira.',
+      });
+
+      const ad = await createAdAndPersist({
+        companyId,
+        adAccountId,
+        accessToken,
+        adSetId: adSet.id,
+        metaAdSetId: metaAdSet.id,
+        creativeId: creative.id,
+        metaCreativeId: metaCreative.id,
+        campaignName,
+        creativeInput,
+      });
+
+      creatives.push(toPublicAdCreative(creative));
+      ads.push(toPublicAd(ad));
+    }
 
     return {
       campaign: toPublicCampaign(campaign),
       form: null,
       adSet: toPublicAdSet(adSet),
-      creative: toPublicAdCreative(creative),
-      ad: toPublicAd(ad),
+      adSets: [toPublicAdSet(adSet)],
+      creative: creatives[0] || null,
+      creatives,
+      ad: ads[0] || null,
+      ads,
     };
+    } catch (error) {
+      logger.error('Ads Builder Traffic falhou', {
+        companyId,
+        detail: error?.message || null,
+        code: error?.code || null,
+      });
+      const cleanup = await cleanupFailedCampaign({
+        companyId,
+        campaign,
+        metaCampaign,
+        accessToken,
+        flow: 'TRAFFIC',
+      });
+      error.cleanupRequired = Boolean(
+        error.cleanupRequired || cleanup.cleanupRequired
+      );
+      throw error;
+    }
   },
 };

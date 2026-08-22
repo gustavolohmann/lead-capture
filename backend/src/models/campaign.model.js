@@ -18,6 +18,13 @@ export const CampaignStatus = Object.freeze({
   DELETED: 'DELETED',
 });
 
+export function isLocalDemoCampaign(row) {
+  return (
+    row?.ad_account_id === 'act_demo_1n_local' &&
+    String(row?.campaign_id || '').startsWith('demo_1n_company_')
+  );
+}
+
 /**
  * @typedef {Object} Campaign
  * @property {number} id
@@ -39,6 +46,7 @@ export function toPublicCampaign(row) {
     id: row.id,
     adAccountId: row.ad_account_id,
     campaignId: row.campaign_id,
+    isLocalDemo: isLocalDemoCampaign(row),
     name: row.name,
     objective: row.objective,
     status: row.status,

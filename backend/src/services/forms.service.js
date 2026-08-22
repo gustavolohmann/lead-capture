@@ -90,6 +90,7 @@ export const formsService = {
       companyId,
       name: input.name,
       description: input.description,
+      submitLabel: input.submitLabel,
       status: input.status || FormStatus.ACTIVE,
     });
 
@@ -118,6 +119,7 @@ export const formsService = {
     const form = await formRepository.update(companyId, formId, {
       name: input.name,
       description: input.description,
+      submitLabel: input.submitLabel,
       status: input.status,
     });
 
